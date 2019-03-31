@@ -1,5 +1,8 @@
 //Chip8.hpp
 #pragma once
+#include <fstream>
+#include <iostream>
+//#include "instructions.cpp"
 namespace chip8
 {
 	struct Chip8 
@@ -17,9 +20,9 @@ namespace chip8
 		unsigned char reg_v[16]; // Banco de registradores (V0 -> VF)
 		unsigned short index;
 		unsigned short pc;
-
+		std::streampos game_size;
 		unsigned char gfx[64*32];
-		unsigned short sound_timer;
+		unsigned short sound_timer; // 60HZ
 		unsigned short delay_timer; // 60HZ
 
 		unsigned short stack[16];
@@ -36,6 +39,7 @@ namespace chip8
 		void loadGame(const char* str );
 
 		void emulate_cycle();
+		void decode_execute_opcode();
 
 		bool draw_flag();
 	
