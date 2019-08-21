@@ -1,12 +1,9 @@
-//Chip8.hpp
+//Chip8.h
 #pragma once
-#include <fstream>
-#include <iostream>
+#include <stdio.h>
 //#include "instructions.cpp"
-namespace chip8
+typedef struct Chip8 
 {
-	struct Chip8 
-	{
 		unsigned short opcode;
 		bool drawflag;	//if opcode ==  0x00E0  or 0xDXYN then True else False
 		/*
@@ -20,31 +17,20 @@ namespace chip8
 		unsigned char reg_v[16]; // Banco de registradores (V0 -> VF)
 		unsigned short index;
 		unsigned short pc;
-		std::streampos game_size;
+		//std::streampos game_size;
 		unsigned char gfx[64*32];
 		unsigned short sound_timer; // 60HZ
 		unsigned short delay_timer; // 60HZ
-
 		unsigned short stack[16];
 		unsigned short sp;
-
 		unsigned char key[16];
-	
 		unsigned char fontset[80];
-		
 
-		void init();
-		// chip8();
-	
-		void loadGame(const char* str );
-
-		void emulate_cycle();
-		void decode_execute_opcode();
-
-		bool draw_flag();
-	
-		void setKeys();
-
-	};
-};
+}; chip8;
+void c8_init(struct Chip8 c8);
+void c8_loadGame(const char* str,struct Chip8 c8);
+void c8_emulate_cycle(struct Chip8 c8);
+void c8_decode_execute_opcode(struct Chip8 c8);
+bool c8_draw_flag(struct Chip8 c8);
+void c8_setKeys(struct Chip8 c8);
 
