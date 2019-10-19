@@ -53,9 +53,9 @@ int c8_loadGame(const char* str,struct Chip8* c8)
     rewind(game_file);
 	c8->game_size = size/2;
 
-	for(int i=0;i<=size;i++){
+	for(int i=0;i<size;i++){
 		int aux = getc(game_file);
-		c8->memory[i+0x200] = getc(game_file);
+		c8->memory[i+0x200] = (unsigned char)aux;
 	}
 
 	printf("%d Bytes Loaded\n",size);
@@ -94,7 +94,7 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 		case 0x0: 	switch(fourth_nibble){
 
 						case 0x0:
-								//clear screen(&(c8->drawflag));
+								clear screen(&(c8->drawflag));
 								break;
 						case 0xE:
 								//subroutine_return();
@@ -246,17 +246,13 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 	}
 	if(invalid_ins)
 		printf("Unknown instruction 1:%x,2:%x,3:%x,4:%x\n",first_nibble,second_nibble,third_nibble,fourth_nibble);
-	else
-		printf("1:%x,2:%x,3:%x,4:%x\n",first_nibble,second_nibble,third_nibble,fourth_nibble);
 
 }
 
 void c8_emulate_cycle(struct Chip8* c8)
 {	
 	// Fetch Instruction
-	//c8->currentinstruction =  c8->memory[c8->pc];
-	//c8->currentinstruction =  (c8->currentinstruction << 8) + c8->memory[c8->pc + 1];	
-	memcpy(&(c8->currentinstruction),(c8->memory + c8->pc) ,2);
+	c8->currentinstruction =  (c8->memory[c8->pc]<< 8) | c8->memory[c8->pc + 1];	
 	printf("%x\n",c8->currentinstruction);
 	c8_decode_execute_instruction(c8);
   	// Update timers

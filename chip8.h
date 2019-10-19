@@ -1,8 +1,6 @@
 //Chip8.h
 #include <stdio.h>
 #include "screen.h"
-
-//#include "instructions.cpp"
 typedef struct Chip8 
 {
 		unsigned short currentinstruction;
