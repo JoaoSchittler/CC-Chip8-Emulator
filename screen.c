@@ -5,7 +5,6 @@
 #include <allegro5/allegro_primitives.h>
 #include<allegro5/allegro_audio.h>
 #include "screen.h"
-#include "instructions.h"
 #define BYTE unsigned char
 
 struct screen_info* screen_init(unsigned int length, unsigned int width,const char * screen_name)

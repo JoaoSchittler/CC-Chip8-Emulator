@@ -1,5 +1,5 @@
-#ifndef _INS_C_
-#define _INS_C_
+#ifndef _INS_H_
+#define _INS_H_
 
 #define BYTE unsigned char
 #define BYTE_2 unsigned short
@@ -111,7 +111,7 @@ void skip_ne_reg(BYTE x,BYTE y,BYTE* regs,BYTE_2* pc)
 //Opcode 0xANNN I <- NNN
 void load_address(BYTE_2* index,BYTE_2 n)
 {
-	(*index) = n;
+	*(index) = n;
 }
 //Opcode 0xBNNN PC = NNN + V0
 void goto_imm(BYTE_2 n,BYTE* regs,BYTE_2* pc)
@@ -173,27 +173,25 @@ void BCD_convert()
 {
 	
 }
-//Opcode 0xFX55 Store register data from V0 to VX starting at address I, // Not sure : -> afterwards I <- I + X + 1
+//Opcode 0xFX55 Store register data from V0 to VX starting at address I
 void dump_regs(BYTE x,BYTE* regs,BYTE_2* index,BYTE* memory)
 {
-	BYTE_2 i;
-	for(i=0;i<=x;i++)
+	for(BYTE_2 i=0;i<=x;i++)
 	{
-		memory[i+(*index)]= regs[i];
+		memory[*index]= regs[i];
+		*(index)++;
 	}
-	(*index) += x+1;//
 
 	
 }
-//Opcode 0xFX65 Load register data from V0 to VX starting at address I, // Not sure : -> afterwards I <- I + X + 1
+//Opcode 0xFX65 Load register data from V0 to VX starting at address I
 void load_regs(BYTE x,BYTE* regs,BYTE_2* index,BYTE* memory)
 {
-	BYTE_2 i;
-	for(i=0;i<=x;i++)
+	for(BYTE_2 i=0;i<=x;i++)
 	{
-		regs[i] = memory[i+(*index)];
+		regs[i] = memory[*index];
+		*(index)++;
 	}
-	(*index) += x+1;//
 	
 }
 #endif

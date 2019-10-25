@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "chip8.h"
-//#include "instructions.c"
+#include "instructions.h"
 #include <stdbool.h>
 #include <string.h>
 
@@ -94,7 +94,7 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 		case 0x0: 	switch(fourth_nibble){
 
 						case 0x0:
-								clear screen(&(c8->drawflag));
+								clear_screen(&(c8->drawflag));
 								break;
 						case 0xE:
 								//subroutine_return();
@@ -112,78 +112,78 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 
 					break;
 
-		case 0x3:	//skip_eq_imm(BYTE x,BYTE n,BYTE* regs,BYTE_2* pc);
+		case 0x3:	skip_eq_imm(second_nibble,(BYTE)c8->currentinstruction & 0x00FF,c8->reg_v,&(c8->pc));
 					break;
 
-		case 0x4:	//skip_ne_imm(BYTE x,BYTE n,BYTE* regs,BYTE_2* pc);
+		case 0x4:	skip_ne_imm(second_nibble,(BYTE)c8->currentinstruction & 0x00FF,c8->reg_v,&(c8->pc));
 					break;
 
-		case 0x5:	//skip_eq_reg(BYTE x,BYTE y,BYTE* regs,BYTE_2* pc);
+		case 0x5:	skip_eq_reg(second_nibble,third_nibble,c8->reg_v,&(c8->pc));
 					break;
 
-		case 0x6: 	//load_imm(BYTE x,BYTE n,BYTE* regs);
+		case 0x6: 	load_imm(second_nibble,(BYTE)c8->currentinstruction & 0x00FF,c8->reg_v);
 					break;
 
-		case 0x7: 	//add_imm(BYTE x,BYTE n,BYTE* regs);
+		case 0x7: 	add_imm(second_nibble,(BYTE)c8->currentinstruction & 0x00FF,c8->reg_v);
 					break;
 
 		case 0x8:	switch(fourth_nibble){
 
 						case 0x0:
-								//move_reg(BYTE x,BYTE y,BYTE* regs);
+								move_reg(second_nibble,third_nibble,c8->reg_v);
 								break;
 						case 0x1:
-								//or_reg(BYTE x,BYTE y,BYTE* regs);
+								or_reg(second_nibble,third_nibble,c8->reg_v);
 								break;
 						case 0x2:
-								//and_reg(BYTE x,BYTE y,BYTE* regs);
+								and_reg(second_nibble,third_nibble,c8->reg_v);
 								break;
 						case 0x3:
-								//xor_reg(BYTE x,BYTE y,BYTE* regs);
+								xor_reg(second_nibble,third_nibble,c8->reg_v);
 								break;
 						case 0x4:
-								//add_reg(BYTE x,BYTE y,BYTE* regs);
+								add_reg(second_nibble,third_nibble,c8->reg_v);
 								break;
 						case 0x5:
-								//sub_reg1(BYTE x,BYTE y,BYTE* regs);
+								sub_reg1(second_nibble,third_nibble,c8->reg_v);
 								break;	
 						case 0x6:
-								//store_lsb_shiftl(BYTE x,BYTE* regs);
+								store_lsb_shiftl(second_nibble,c8->reg_v);
 								break;
 						case 0x7:
-								//sub_reg2(BYTE x,BYTE y,BYTE* regs);
+								sub_reg2(second_nibble,third_nibble,c8->reg_v);
 								break;	
 						case 0xE:
-								//store_msb_shiftr(BYTE x,BYTE* regs);
+								store_msb_shiftr(second_nibble,c8->reg_v);
 								break;					
 						default:
 								invalid_ins = 1;				
 					}	
 					break;
 
-		case 0x9:	//skip_ne_reg(BYTE x,BYTE y,BYTE* regs,BYTE_2* pc);
+		case 0x9:	skip_ne_reg(second_nibble,third_nibble,c8->reg_v,&(c8->pc));
 					break;
 
-		case 0xA:	//load_address(BYTE_2* index,BYTE_2 n);
+		case 0xA:	load_address(&(c8->index),c8->currentinstruction & 0x0FFF);
 					break;
 
-		case 0xB:	//goto_imm(BYTE_2 n,BYTE* regs,BYTE_2* pc);
+		case 0xB:	goto_imm(c8->currentinstruction & 0x0FFF,c8->reg_v,&(c8->pc));
 					break;	
 
 		case 0xC:	//generate_mask()
 					break;
 
-		case 0xD:	//draw_sprite(int * flag)
+		case 0xD:	draw_sprite(&(c8->drawflag));
 					break;
 
 		case 0xE:	switch(fourth_nibble){
 
 						case 0xE:
-								//skip_if_key_press(BYTE* key,BYTE x,BYTE_2* pc);
+								skip_if_key_press(c8->key,second_nibble,&(c8->pc));
 								break;
 						
 						case 0x1:
-								//skip_if_key_not_pressed(BYTE* key,BYTE x,BYTE_2* pc);
+								skip_if_key_not_pressed(c8->key,second_nibble,&(c8->pc));
 								break;
 						default:
 								invalid_ins = 1;				
@@ -195,12 +195,13 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 						case 0x0:
 								switch(fourth_nibble){
 
-									case 0x7:
-												//get_dtimer(BYTE x,BYTE* regs,BYTE_2 delay_timer);
+									case 0x7://Opcode 0xFX07 X <- delay_timer
+												get_dtimer(second_nibble,c8->reg_v,c8->delay_timer);
 												break;
 						
 									case 0xA:
-												//get_key(BYTE x,BYTE* regs);
+												//get_key(BYTE x,c8->reg_v);
+												//c8->getKey = true;
 												break;
 									default:
 										invalid_ins = 1;				
@@ -210,14 +211,14 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 								switch(fourth_nibble){
 
 									case 0x5:
-												//set_dtimer(BYTE x,BYTE* regs,BYTE_2* delay_timer);
+												set_dtimer(second_nibble,c8->reg_v,&(c8->delay_timer));
 												break;
 						
 									case 0x8:
-												//set_stimer(BYTE x,BYTE* regs,BYTE_2* sound_timer);
+												set_stimer(second_nibble,c8->reg_v,&(c8->sound_timer));
 												break;
 									case 0xE:
-												//set_i(BYTE x,BYTE* regs,BYTE_2* index);
+												set_i(second_nibble,c8->reg_v,&(c8->index));
 												break;
 									default:
 										invalid_ins = 1;				
@@ -229,11 +230,11 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 						case 0x3:
 								//BCD_convert();
 								break;
-						case 0x5:
-								//dump_regs(BYTE x,BYTE* regs,BYTE_2* index,BYTE* memory);
+						case 0x5://Opcode 0xFX55
+								dump_regs(second_nibble,c8->reg_v,&(c8->index),c8->memory);
 								break;
 						case 0x6:
-								//load_regs(BYTE x,BYTE* regs,BYTE_2* index,BYTE* memory);
+								load_regs(second_nibble,c8->reg_v,&(c8->index),c8->memory);
 								break;					
 						default:
 								invalid_ins = 1;				
