@@ -1,6 +1,7 @@
 #ifndef _INS_H_
 #define _INS_H_
-
+#include <stdio.h>
+#include <stdlib.h>
 #define BYTE unsigned char
 #define BYTE_2 unsigned short
 //Instructions.c
@@ -10,9 +11,15 @@ void clear_screen(int* flag)
 	*flag = 2;
 }
 //Opcode 0x00EE
-void subroutine_return()
+void subroutine_return(unsigned short * stack, unsigned short* sp, BYTE_2* pc)
 {
-	
+	*(pc) = stack[*sp];
+	*(sp)--;
+	if(*sp < 0 )
+	{
+		printf("Stack UnderFlow!!!!!!\n");
+		exit(0);
+	}	
 }
 //Opcode 0x1NNN
 void go_to(BYTE_2 adress,BYTE_2* pc)
@@ -20,9 +27,16 @@ void go_to(BYTE_2 adress,BYTE_2* pc)
 	*pc = adress;
 }
 //Opcode 0x2NNN
-void subroutine_go()
+void subroutine_go(unsigned short * stack, unsigned short* sp, BYTE_2* pc, BYTE_2 N)
 {
-	
+	stack[*sp] = *pc;
+	*(sp)++;
+	if(*sp > 15)
+	{
+		printf("Stack Overflow!!!!!!!!!\n");
+		exit(0);
+	}
+	*(pc) = N;
 }
 //Opcode 0x3XNN  if X == NN then PC+2 else PC
 void skip_eq_imm(BYTE x,BYTE n,BYTE* regs,BYTE_2* pc) 
@@ -123,20 +137,20 @@ void generate_mask()
 {
 	
 }
-//Opcode 0xDXYN Draw Sprite at X,Y with N bytes starting at address I, F = 1 if any pixels are changed else F = 0
-void draw_sprite(int * flag)
+//Opcode 0xDXYN Draw Sprite at X,Y with height N starting at address I, F = 1 if any pixels are changed else F = 0
+void draw_sprite()
 {
-	*flag = 1;
+	//Implemented in chip8.c
 }
 //Opcode 0xEX8E if key X is pressed then PC+2 else PC
 void skip_if_key_press(BYTE* key,BYTE x,BYTE_2* pc)
 {
-	if(key[x] == 1) (*pc)+=2;
+	if(key[x]) (*pc)+=2;
 }
 //Opcode 0xEXA1 if key X is not pressed then PC+2 else PC
 void skip_if_key_not_pressed(BYTE* key,BYTE x,BYTE_2* pc)
 {
-	if(key[x] == 0) (*pc)+=2;
+	if(!key[x]) (*pc)+=2;
 }
 //Opcode 0xFX07 X <- delay_timer
 void get_dtimer(BYTE x,BYTE* regs,BYTE_2 delay_timer)
