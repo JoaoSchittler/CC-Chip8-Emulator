@@ -4,14 +4,15 @@ int main()
 {
 	ins Instructions[] = 
 	{
-		0x0460,
-		0x0561,
-		0x1482,
-		0x0482
+		//0xFF61,
+		//0xFF60,
+		//0x1482,
+		//0x0482,
+		0x0AF5,
+		0x0012
 
 	};
-	//0x8XY4 X <- Y + X , if Carry out then F = 1 else F = 0
-	int n = 4;
+	int n = 2;
 
 	FILE* fp = fopen("TestGame","wb");
 
@@ -19,3 +20,5 @@ int main()
 
 	fclose(fp);	
 }
+
+//Opcode 0xFX0A 

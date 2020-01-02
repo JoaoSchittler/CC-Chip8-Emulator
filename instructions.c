@@ -153,9 +153,9 @@ void get_dtimer(BYTE x,BYTE* regs,BYTE_2 delay_timer)
 	regs[x] = delay_timer;
 }
 //Opcode 0xFX0A Waits for a keypress (Blocking Operation. All instruction halted until next key event), Stores the key in X
-void get_key(BYTE x,BYTE* regs)
+void get_key(BYTE x,BYTE* regs,BYTE key)
 {
-
+	regs[x] = key;
 }
 //Opcode 0xFX15 delay_timer <- X
 void set_dtimer(BYTE x,BYTE* regs,BYTE_2* delay_timer)

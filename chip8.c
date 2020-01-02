@@ -6,14 +6,18 @@
 #include <stdbool.h>
 #include <string.h>
 #include <time.h>
+
+void c8_emulate_cycle(struct Chip8* c8);
+void c8_decode_execute_instruction(struct Chip8* c8);
+
 //TODO - init fontset
-void c8_init(struct Chip8* c8)
+void c8_init(struct Chip8* c8,int doDebug)
 {
 	srand(time(NULL));
 	// Initialize registers and memory 
 	c8->currentinstruction  = 0;
 	c8->drawflag = 0;
-	c8->get_keyboard_input = 0;
+	c8->debug = doDebug;
 	c8->pc      = 0x200;
 	c8->game_size = 0;
 	c8->sp	= 0;
@@ -93,6 +97,13 @@ void printregs(BYTE* regs)
 		printf("Reg[%d]: %d\n",i,regs[i]);
 	}
 }
+void printstacktrace(unsigned short * stack)
+{
+	for(int i = 0; i < 16; i++)
+	{
+		printf("Stack[%d]: %x\n",i,stack[i]);
+	}	
+}
 void c8_play_game(struct Chip8* c8)
 {
 
@@ -108,13 +119,18 @@ void c8_play_game(struct Chip8* c8)
 		if(c8->drawflag == 1)
 			screen_alter_grid(c8->scr,&(c8->drawflag),c8->sprite_buffer.x,c8->sprite_buffer.y,c8->sprite_buffer.height,c8->regs,c8->memory,&(c8->index));
 
-		c8_get_input(c8);
+		screen_manage_events(c8->scr,c8->key);
 		screen_refresh(c8->scr);
 		screen_wait(c8->scr,0.01666);
 
-		printregs(c8->regs);
-
-		getchar(); // system pause
+		if( c8->debug == true)
+		{
+			printf("%x\n",c8->currentinstruction);
+			printregs(c8->regs);
+			printf("\n\n");
+			printstacktrace(c8->stack);
+			getchar(); // system pause
+		}
 
 	}
 
@@ -124,7 +140,7 @@ void c8_emulate_cycle(struct Chip8* c8)
 {	
 	// Fetch Instruction
 	c8->currentinstruction =  (c8->memory[c8->pc]<< 8) | c8->memory[c8->pc + 1];	
-	printf("%x\n",c8->currentinstruction);
+	
 	c8_decode_execute_instruction(c8);
   	// Update timers
   	if(c8->delay_timer>0)
@@ -145,6 +161,7 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 	unsigned short second_nibble = (c8->currentinstruction & 0x0F00) >> 8;
 	unsigned short third_nibble  = (c8->currentinstruction & 0x00F0) >> 4;
 	unsigned short fourth_nibble = (c8->currentinstruction & 0x000F)     ;
+	unsigned char key = 0;
 	int invalid_ins = 0;
 	c8->pc = c8->pc+2;	//Always increments pc
 	switch(first_nibble)
@@ -230,12 +247,15 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 		case 0xC:	generate_mask(c8->currentinstruction & 0x00FF,c8->regs,second_nibble);
 					break;
 
-		case 0xD:	//Opcode 0xDXYN Draw Sprite at X,Y with height N starting at address I, F = 1 if any pixels are changed else F = 0
+		case 0xD:
+				{
 					c8->sprite_buffer.x = second_nibble;
 					c8->sprite_buffer.y = third_nibble;
 					c8->sprite_buffer.height = fourth_nibble;
 					c8->drawflag = 1;
 					break;
+				}
+				
 
 		case 0xE:	switch(fourth_nibble){
 
@@ -261,8 +281,7 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 												break;
 						
 									case 0xA:
-												//get_key(BYTE x,c8->regs);
-												//c8->getKey = true;
+												get_key(second_nibble,c8->regs,screen_getinput(c8->scr));
 												break;
 									default:
 										invalid_ins = 1;				
@@ -291,7 +310,7 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 						case 0x3:
 								BCD_convert(second_nibble,c8->regs,c8->index,c8->memory);
 								break;
-						case 0x5://Opcode 0xFX55
+						case 0x5:
 								dump_regs(second_nibble,c8->regs,c8->index,c8->memory);
 								break;
 						case 0x6:
@@ -307,16 +326,25 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 
 	}
 	if(invalid_ins)
-		printf("Unknown instruction 1:%x,2:%x,3:%x,4:%x\n",first_nibble,second_nibble,third_nibble,fourth_nibble);
+		printf("Unknown instruction %x\n",c8->currentinstruction);
 
 
 }
 
-void c8_get_input(struct Chip8* c8)
-{
+/*
 
-}
+Keypad                   Keyboard
++-+-+-+-+                +-+-+-+-+
+|1|2|3|C|                |1|2|3|4|
++-+-+-+-+                +-+-+-+-+
+|4|5|6|D|                |Q|W|E|R|
++-+-+-+-+       =>       +-+-+-+-+
+|7|8|9|E|                |A|S|D|F|
++-+-+-+-+                +-+-+-+-+
+|A|0|B|F|                |Z|X|C|V|
++-+-+-+-+                +-+-+-+-+
 
+*/
 void c8_finalize(struct Chip8* c8)
 {
 	screen_delete(c8->scr);

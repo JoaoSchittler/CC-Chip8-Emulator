@@ -84,7 +84,7 @@ void skip_if_key_not_pressed(BYTE* key,BYTE x,BYTE_2* pc);
 void get_dtimer(BYTE x,BYTE* regs,BYTE_2 delay_timer);
 
 //Opcode 0xFX0A
-void get_key(BYTE x,BYTE* regs);
+void get_key(BYTE x,BYTE* regs,BYTE key);
 
 //Opcode 0xFX15
 void set_dtimer(BYTE x,BYTE* regs,BYTE_2* delay_timer);

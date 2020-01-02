@@ -1,11 +1,6 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <allegro5/allegro.h>
-#include <allegro5/allegro_font.h>
-#include <allegro5/allegro_primitives.h>
-#include<allegro5/allegro_audio.h>
 #include "screen.h"
-#define BYTE unsigned char
+unsigned char translate_key (int raw_key);
+
 
 struct screen_info* screen_init(unsigned int length, unsigned int width,const char * screen_name)
 {
@@ -81,6 +76,64 @@ void screen_clear_grid(struct screen_info* info,int* draw_flag)
     *draw_flag = 0;    
 }
 
+void screen_manage_events(struct screen_info* info,unsigned char* keys)
+{
+    ALLEGRO_EVENT event;
+    while(al_get_next_event(info->queue,&event))
+    {
+        switch(event.type)
+        {
+            case ALLEGRO_EVENT_KEY_DOWN :
+            {           
+                int idx = translate_key(event.keyboard.keycode);
+                keys[idx] = 1;
+                break;
+            }
+            case ALLEGRO_EVENT_KEY_UP:
+            {
+                int idx = translate_key(event.keyboard.keycode);
+                keys[idx] = 0;
+                break;
+            }
+            case ALLEGRO_EVENT_DISPLAY_CLOSE:
+            {
+                screen_delete(info);
+                exit(0);
+            }
+        }
+    }    
+}
+unsigned char screen_getinput(struct screen_info* info)
+{
+    ALLEGRO_EVENT event;
+    ALLEGRO_TIMEOUT timeout;
+    unsigned char key;
+    int ev;
+    loop:
+    al_init_timeout(&timeout, 0.016); // Checks at 60Hz for input
+    ev = al_wait_for_event_until(info->queue, &event, &timeout);
+
+
+    if ( ev && event.type == ALLEGRO_EVENT_KEY_DOWN)
+    {
+        key = translate_key(event.keyboard.keycode);
+        if( key < 16){
+            printf("Got key %x\n",key);
+            return key;
+        }
+        else{
+            printf("Invalid Key\n");
+            goto loop;
+        }
+    }
+    else
+    {
+        goto loop;
+    }    
+    
+}
+
+
 void screen_refresh(struct screen_info* info)
 {
     //16 px per line
@@ -118,4 +171,27 @@ void screen_delete(struct screen_info* info)
     al_destroy_event_queue(info->queue);
     free(info);
 }
-
+unsigned char translate_key (int raw_key)
+{
+    //Converts real keyboard key into CHIP-8 key index
+    switch ( raw_key )
+    {
+        case ALLEGRO_KEY_1 :            return 0x01;
+        case ALLEGRO_KEY_2 :            return 0x02;
+        case ALLEGRO_KEY_3 :            return 0x03;
+        case ALLEGRO_KEY_4 :            return 0x0C;
+        case ALLEGRO_KEY_Q :            return 0x04;
+        case ALLEGRO_KEY_W :            return 0x05;
+        case ALLEGRO_KEY_E :            return 0x06;
+        case ALLEGRO_KEY_R :            return 0x0D;
+        case ALLEGRO_KEY_A :            return 0x07;
+        case ALLEGRO_KEY_S :            return 0x08;
+        case ALLEGRO_KEY_D :            return 0x09;
+        case ALLEGRO_KEY_F :            return 0x0E;
+        case ALLEGRO_KEY_Z :            return 0x0A;
+        case ALLEGRO_KEY_X :            return 0x00;
+        case ALLEGRO_KEY_C :            return 0x0B;
+        case ALLEGRO_KEY_V :            return 0x0F;
+        default:                        return 0x10;
+    }
+}

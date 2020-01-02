@@ -11,7 +11,7 @@ typedef struct Chip8
 		unsigned short currentinstruction;
 		sprite sprite_buffer;
 		int drawflag;
-		int get_keyboard_input;
+		int debug;
 		/*
 	 	Memory map:
 			0x000-0x1FF (Font set)
@@ -34,14 +34,9 @@ typedef struct Chip8
 		screen_info* scr;
 
 } chip8;
-void c8_init(struct Chip8* c8);
+void c8_init(struct Chip8* c8,int doDebug);
 
 void c8_play_game(struct Chip8* c8);
 int c8_loadGame(const char* str,struct Chip8* c8);
-
-void c8_emulate_cycle(struct Chip8* c8);
-void c8_decode_execute_instruction(struct Chip8* c8);
-
-void c8_get_input(struct Chip8* c8);
 
 void c8_finalize(struct Chip8* c8);

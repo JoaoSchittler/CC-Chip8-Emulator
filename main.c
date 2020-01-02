@@ -7,7 +7,7 @@
 int main()
 {
 	chip8 processor;
-	c8_init(&processor);
+	c8_init(&processor,false);
 	c8_loadGame("TestGame",&processor);
 	c8_play_game(&processor);
 	c8_finalize(&processor);

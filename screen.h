@@ -5,6 +5,7 @@
 #include <allegro5/allegro_primitives.h>
 #include<allegro5/allegro_audio.h>
 #include<allegro5/allegro_acodec.h>
+#include <stdio.h>
 #define BYTE unsigned char
 struct screen_info{
 
@@ -21,7 +22,9 @@ void screen_alter_grid(struct screen_info* info,int* draw_flag,int x,int y,int h
 
 void screen_clear_grid(struct screen_info* info,int* draw_flag);
 
-void screen_handle_event();
+void screen_manage_events(struct screen_info* info,unsigned char* keys);
+
+unsigned char screen_getinput(struct screen_info* info);
 
 void screen_refresh(screen_info* info);
 

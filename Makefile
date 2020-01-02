@@ -11,4 +11,4 @@ instructions.o: instructions.c instructions.h
 screen.o: screen.c screen.h
 	gcc -c screen.c
 clean:
-	rm -f *.o
+	rm -f *.o a.out main TestGame
