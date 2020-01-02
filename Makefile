@@ -1,15 +1,14 @@
-CXX = gcc
-CXXFLAGS = -o
-LDFLAGS = -lallegro -lallegro_main \
-    -lallegro_color -lallegro_font -lallegro_primitives -lallegro_image -lallegro_audio -lallegro_acodec
+LDFLAGS = -lallegro -lallegro_main -lallegro_color -lallegro_font -lallegro_primitives -lallegro_image -lallegro_audio -lallegro_acodec
 
-all: $(TARGET)
+all : main
+main : main.o chip8.o instructions.o screen.o
+	gcc	main.o chip8.o instructions.o screen.o -o main $(LDFLAGS)
 
+chip8.o: chip8.c chip8.h  instructions.h screen.h
+	gcc -c chip8.c
+instructions.o: instructions.c instructions.h
+	gcc -c instructions.c
 screen.o: screen.c screen.h
-chip8.o: chip8.c chip8.h 
-main.o: main.c chip8.h screen.h
-main: main.o chip8.o screen.o
-	$(CXX) $(CXXFLAGS) $(TARGET) $(LDFLAGS)
-
+	gcc -c screen.c
 clean:
-	rm -f main *.o
+	rm -f *.o

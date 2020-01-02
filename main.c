@@ -8,9 +8,23 @@ int main()
 {
 	chip8 processor;
 	c8_init(&processor);
-	c8_loadGame("PONG",&processor);
+	c8_loadGame("TestGame",&processor);
 	c8_play_game(&processor);
 	c8_finalize(&processor);
 	return 0;
 	
 }
+/*
+
+Keypad                   Keyboard
++-+-+-+-+                +-+-+-+-+
+|1|2|3|C|                |1|2|3|4|
++-+-+-+-+                +-+-+-+-+
+|4|5|6|D|                |Q|W|E|R|
++-+-+-+-+       =>       +-+-+-+-+
+|7|8|9|E|                |A|S|D|F|
++-+-+-+-+                +-+-+-+-+
+|A|0|B|F|                |Z|X|C|V|
++-+-+-+-+                +-+-+-+-+
+
+*/

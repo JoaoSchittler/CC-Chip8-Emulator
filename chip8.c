@@ -5,10 +5,11 @@
 #include "instructions.h"
 #include <stdbool.h>
 #include <string.h>
-
+#include <time.h>
 //TODO - init fontset
 void c8_init(struct Chip8* c8)
 {
+	srand(time(NULL));
 	// Initialize registers and memory 
 	c8->currentinstruction  = 0;
 	c8->drawflag = 0;
@@ -24,7 +25,7 @@ void c8_init(struct Chip8* c8)
 	{
 		if(i<16)
 		{
-			c8->reg_v[i]=0;
+			c8->regs[i]=0;
 			c8->stack[i]=0;
 			c8->key[i]=0;
 		} 
@@ -63,8 +64,11 @@ int c8_loadGame(const char* str,struct Chip8* c8)
 {
 	//Open the file in output mode and set the fp to the end 
 	FILE* game_file = fopen(str,"r");
-	if(game_file == NULL) 
+	if(game_file == NULL) {
+		printf("File not found\n");
+
 		return 0;
+	}
 
 	fseek(game_file, 0L, SEEK_END);
     int size = ftell(game_file); // Number of Bytes of file
@@ -82,24 +86,55 @@ int c8_loadGame(const char* str,struct Chip8* c8)
 	fclose(game_file);
 	return 1;
 }
+void printregs(BYTE* regs)
+{
+	for(int i = 0; i < 16; i++)
+	{
+		printf("Reg[%d]: %d\n",i,regs[i]);
+	}
+}
 void c8_play_game(struct Chip8* c8)
 {
+
 	while(1)
 	{
-		if(c8->pc > c8->game_size + 0x200){
-				c8->pc = 0x200;
+		if(c8->pc > c8->game_size + 0x200 + 2){
+				return;
 		}
-
 		c8_emulate_cycle(c8);
 
 		if(c8->drawflag == 2)
 			screen_clear_grid(c8->scr,&(c8->drawflag));
 		if(c8->drawflag == 1)
-			screen_alter_grid(c8->scr,&(c8->drawflag),c8->sprite_buffer.x,c8->sprite_buffer.y,c8->sprite_buffer.height,c8->reg_v,c8->memory,&(c8->index));
+			screen_alter_grid(c8->scr,&(c8->drawflag),c8->sprite_buffer.x,c8->sprite_buffer.y,c8->sprite_buffer.height,c8->regs,c8->memory,&(c8->index));
 
 		c8_get_input(c8);
 		screen_refresh(c8->scr);
 		screen_wait(c8->scr,0.01666);
+
+		printregs(c8->regs);
+
+		getchar(); // system pause
+
+	}
+
+}
+
+void c8_emulate_cycle(struct Chip8* c8)
+{	
+	// Fetch Instruction
+	c8->currentinstruction =  (c8->memory[c8->pc]<< 8) | c8->memory[c8->pc + 1];	
+	printf("%x\n",c8->currentinstruction);
+	c8_decode_execute_instruction(c8);
+  	// Update timers
+  	if(c8->delay_timer>0)
+  		c8->delay_timer--;
+  	if(c8->sound_timer>0)
+	{
+		if(c8->sound_timer==1)
+		  	printf("Beep"); // Play beep sound
+	
+		c8->sound_timer--;	
 	}
 
 }
@@ -134,65 +169,65 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 
 					break;
 
-		case 0x3:	skip_eq_imm(second_nibble,(BYTE)c8->currentinstruction & 0x00FF,c8->reg_v,&(c8->pc));
+		case 0x3:	skip_eq_imm(second_nibble,(BYTE)c8->currentinstruction & 0x00FF,c8->regs,&(c8->pc));
 					break;
 
-		case 0x4:	skip_ne_imm(second_nibble,(BYTE)c8->currentinstruction & 0x00FF,c8->reg_v,&(c8->pc));
+		case 0x4:	skip_ne_imm(second_nibble,(BYTE)c8->currentinstruction & 0x00FF,c8->regs,&(c8->pc));
 					break;
 
-		case 0x5:	skip_eq_reg(second_nibble,third_nibble,c8->reg_v,&(c8->pc));
+		case 0x5:	skip_eq_reg(second_nibble,third_nibble,c8->regs,&(c8->pc));
 					break;
 
-		case 0x6: 	load_imm(second_nibble,(BYTE)c8->currentinstruction & 0x00FF,c8->reg_v);
+		case 0x6: 	load_imm(second_nibble,(BYTE)c8->currentinstruction & 0x00FF,c8->regs);
 					break;
 
-		case 0x7: 	add_imm(second_nibble,(BYTE)c8->currentinstruction & 0x00FF,c8->reg_v);
+		case 0x7: 	add_imm(second_nibble,(BYTE)c8->currentinstruction & 0x00FF,c8->regs);
 					break;
 
 		case 0x8:	switch(fourth_nibble){
 
 						case 0x0:
-								move_reg(second_nibble,third_nibble,c8->reg_v);
+								move_reg(second_nibble,third_nibble,c8->regs);
 								break;
 						case 0x1:
-								or_reg(second_nibble,third_nibble,c8->reg_v);
+								or_reg(second_nibble,third_nibble,c8->regs);
 								break;
 						case 0x2:
-								and_reg(second_nibble,third_nibble,c8->reg_v);
+								and_reg(second_nibble,third_nibble,c8->regs);
 								break;
 						case 0x3:
-								xor_reg(second_nibble,third_nibble,c8->reg_v);
+								xor_reg(second_nibble,third_nibble,c8->regs);
 								break;
 						case 0x4:
-								add_reg(second_nibble,third_nibble,c8->reg_v);
+								add_reg(second_nibble,third_nibble,c8->regs);
 								break;
 						case 0x5:
-								sub_reg1(second_nibble,third_nibble,c8->reg_v);
+								sub_reg1(second_nibble,third_nibble,c8->regs);
 								break;	
 						case 0x6:
-								store_lsb_shiftl(second_nibble,c8->reg_v);
+								store_lsb_shiftl(second_nibble,c8->regs);
 								break;
 						case 0x7:
-								sub_reg2(second_nibble,third_nibble,c8->reg_v);
+								sub_reg2(second_nibble,third_nibble,c8->regs);
 								break;	
 						case 0xE:
-								store_msb_shiftr(second_nibble,c8->reg_v);
+								store_msb_shiftr(second_nibble,c8->regs);
 								break;					
 						default:
 								invalid_ins = 1;				
 					}	
 					break;
 
-		case 0x9:	skip_ne_reg(second_nibble,third_nibble,c8->reg_v,&(c8->pc));
+		case 0x9:	skip_ne_reg(second_nibble,third_nibble,c8->regs,&(c8->pc));
 					break;
 
 		case 0xA:	load_address(&(c8->index),c8->currentinstruction & 0x0FFF);
 					break;
 
-		case 0xB:	goto_imm(c8->currentinstruction & 0x0FFF,c8->reg_v,&(c8->pc));
+		case 0xB:	goto_imm(c8->currentinstruction & 0x0FFF,c8->regs,&(c8->pc));
 					break;	
 
-		case 0xC:	//generate_mask()
+		case 0xC:	generate_mask(c8->currentinstruction & 0x00FF,c8->regs,second_nibble);
 					break;
 
 		case 0xD:	//Opcode 0xDXYN Draw Sprite at X,Y with height N starting at address I, F = 1 if any pixels are changed else F = 0
@@ -221,12 +256,12 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 						case 0x0:
 								switch(fourth_nibble){
 
-									case 0x7://Opcode 0xFX07 X <- delay_timer
-												get_dtimer(second_nibble,c8->reg_v,c8->delay_timer);
+									case 0x7:
+												get_dtimer(second_nibble,c8->regs,c8->delay_timer);
 												break;
 						
 									case 0xA:
-												//get_key(BYTE x,c8->reg_v);
+												//get_key(BYTE x,c8->regs);
 												//c8->getKey = true;
 												break;
 									default:
@@ -237,14 +272,14 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 								switch(fourth_nibble){
 
 									case 0x5:
-												set_dtimer(second_nibble,c8->reg_v,&(c8->delay_timer));
+												set_dtimer(second_nibble,c8->regs,&(c8->delay_timer));
 												break;
 						
 									case 0x8:
-												set_stimer(second_nibble,c8->reg_v,&(c8->sound_timer));
+												set_stimer(second_nibble,c8->regs,&(c8->sound_timer));
 												break;
 									case 0xE:
-												set_i(second_nibble,c8->reg_v,&(c8->index));
+												set_i(second_nibble,c8->regs,&(c8->index));
 												break;
 									default:
 										invalid_ins = 1;				
@@ -254,13 +289,13 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 								//load_sprite_address();
 								break;
 						case 0x3:
-								//BCD_convert();
+								BCD_convert(second_nibble,c8->regs,c8->index,c8->memory);
 								break;
 						case 0x5://Opcode 0xFX55
-								dump_regs(second_nibble,c8->reg_v,&(c8->index),c8->memory);
+								dump_regs(second_nibble,c8->regs,c8->index,c8->memory);
 								break;
 						case 0x6:
-								load_regs(second_nibble,c8->reg_v,&(c8->index),c8->memory);
+								load_regs(second_nibble,c8->regs,c8->index,c8->memory);
 								break;					
 						default:
 								invalid_ins = 1;				
@@ -274,26 +309,9 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 	if(invalid_ins)
 		printf("Unknown instruction 1:%x,2:%x,3:%x,4:%x\n",first_nibble,second_nibble,third_nibble,fourth_nibble);
 
-}
-
-void c8_emulate_cycle(struct Chip8* c8)
-{	
-	// Fetch Instruction
-	c8->currentinstruction =  (c8->memory[c8->pc]<< 8) | c8->memory[c8->pc + 1];	
-	//printf("%x\n",c8->currentinstruction);
-	c8_decode_execute_instruction(c8);
-  	// Update timers
-  	if(c8->delay_timer>0)
-  		c8->delay_timer--;
-  	if(c8->sound_timer>0)
-	{
-		if(c8->sound_timer==1)
-		  	printf("Beep"); // Play beep sound
-	
-		c8->sound_timer--;	
-	}
 
 }
+
 void c8_get_input(struct Chip8* c8)
 {
 

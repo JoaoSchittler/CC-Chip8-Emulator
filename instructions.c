@@ -1,5 +1,4 @@
-#define BYTE unsigned char
-#define BYTE_2 unsigned short
+#include "instructions.h"
 //Instructions.c
 //Opcode 0x00E0
 void clear_screen(int* flag)
@@ -7,9 +6,15 @@ void clear_screen(int* flag)
 	*flag = 2;
 }
 //Opcode 0x00EE
-void subroutine_return()
+void subroutine_return(unsigned short * stack, unsigned short* sp, BYTE_2* pc)
 {
-	
+	*(pc) = stack[*sp];
+	*(sp)--;
+	if(*sp < 0 )
+	{
+		printf("Stack UnderFlow!!!!!!\n");
+		exit(0);
+	}	
 }
 //Opcode 0x1NNN
 void go_to(BYTE_2 adress,BYTE_2* pc)
@@ -17,9 +22,16 @@ void go_to(BYTE_2 adress,BYTE_2* pc)
 	*pc = adress;
 }
 //Opcode 0x2NNN
-void subroutine_go()
+void subroutine_go(unsigned short * stack, unsigned short* sp, BYTE_2* pc, BYTE_2 N)
 {
-	
+	stack[*sp] = *pc;
+	*(sp)++;
+	if(*sp > 15)
+	{
+		printf("Stack Overflow!!!!!!!!!\n");
+		exit(0);
+	}
+	*(pc) = N;
 }
 //Opcode 0x3XNN  if X == NN then PC+2 else PC
 void skip_eq_imm(BYTE x,BYTE n,BYTE* regs,BYTE_2* pc) 
@@ -108,7 +120,7 @@ void skip_ne_reg(BYTE x,BYTE y,BYTE* regs,BYTE_2* pc)
 //Opcode 0xANNN I <- NNN
 void load_address(BYTE_2* index,BYTE_2 n)
 {
-	(*index) = n;
+	*(index) = n;
 }
 //Opcode 0xBNNN PC = NNN + V0
 void goto_imm(BYTE_2 n,BYTE* regs,BYTE_2* pc)
@@ -116,24 +128,24 @@ void goto_imm(BYTE_2 n,BYTE* regs,BYTE_2* pc)
 	(*pc) = n + regs[0];
 }
 //Opcode 0xCXNN X <- rand() & NN
-void generate_mask()
+void generate_mask(BYTE_2 n, BYTE* regs, BYTE x)
 {
-	
+	regs[x] = rand() & n;
 }
-//Opcode 0xDXYN Draw Sprite at X,Y with N bytes starting at address I, F = 1 if any pixels are changed else F = 0
-void draw_sprite(int * flag)
+//Opcode 0xDXYN Draw Sprite at X,Y with height N starting at address I, F = 1 if any pixels are changed else F = 0
+void draw_sprite()
 {
-	*flag = 1;
+	//Implemented in chip8.c
 }
 //Opcode 0xEX8E if key X is pressed then PC+2 else PC
 void skip_if_key_press(BYTE* key,BYTE x,BYTE_2* pc)
 {
-	if(key[x] == 1) (*pc)+=2;
+	if(key[x]) (*pc)+=2;
 }
 //Opcode 0xEXA1 if key X is not pressed then PC+2 else PC
 void skip_if_key_not_pressed(BYTE* key,BYTE x,BYTE_2* pc)
 {
-	if(key[x] == 0) (*pc)+=2;
+	if(!key[x]) (*pc)+=2;
 }
 //Opcode 0xFX07 X <- delay_timer
 void get_dtimer(BYTE x,BYTE* regs,BYTE_2 delay_timer)
@@ -165,31 +177,29 @@ void load_sprite_address()
 {
 	
 }
-//Opcode 0xFX33 [I-I+2] <- BCD(X)
-void BCD_convert()
+//Opcode 0xFX33 [I->I+2] <- BCD(X)
+void BCD_convert(BYTE x,BYTE* regs,BYTE_2 index,BYTE* memory)
 {
-	
-}
-//Opcode 0xFX55 Store register data from V0 to VX starting at address I, // Not sure : -> afterwards I <- I + X + 1
-void dump_regs(BYTE x,BYTE* regs,BYTE_2* index,BYTE* memory)
-{
-	BYTE_2 i;
-	for(i=0;i<=x;i++)
-	{
-		memory[i+(*index)]= regs[i];
-	}
-	(*index) += x+1;//
+	memory[index]   = regs[x]/100;
+	memory[index+1] = (regs[x]/10)%10;
+	memory[index+2] = regs[x]%10;
 
-	
 }
-//Opcode 0xFX65 Load register data from V0 to VX starting at address I, // Not sure : -> afterwards I <- I + X + 1
-void load_regs(BYTE x,BYTE* regs,BYTE_2* index,BYTE* memory)
+//Opcode 0xFX55 Store register data from V0 to VX starting at address I
+void dump_regs(BYTE x,BYTE* regs,BYTE_2 index,BYTE* memory)
 {
-	BYTE_2 i;
-	for(i=0;i<=x;i++)
+	for(BYTE_2 i=0;i<=x;i++)
 	{
-		regs[i] = memory[i+(*index)];
+		memory[index]= regs[i];
 	}
-	(*index) += x+1;//
+
+}
+//Opcode 0xFX65 Load register data from V0 to VX starting at address I
+void load_regs(BYTE x,BYTE* regs,BYTE_2 index,BYTE* memory)
+{
+	for(BYTE_2 i=0;i<=x;i++)
+	{
+		regs[i] = memory[index];
+	}
 	
 }

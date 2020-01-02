@@ -1,3 +1,5 @@
+#ifndef _SCN_H_
+#define _SCN_H_
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_primitives.h>
@@ -27,3 +29,4 @@ void screen_wait(screen_info* info , double ms);
 
 void screen_delete(screen_info* info);
 	
+#endif

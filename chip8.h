@@ -20,7 +20,7 @@ typedef struct Chip8
 	
 		*/
 		unsigned char memory[4096];//Memória de 4k bytes	
-		unsigned char reg_v[16]; // Banco de registradores (V0 -> VF)
+		unsigned char regs[16]; // Banco de registradores (V0 -> VF)
 		unsigned short index;
 		unsigned short pc;
 		unsigned int game_size;
