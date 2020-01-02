@@ -190,7 +190,7 @@ void dump_regs(BYTE x,BYTE* regs,BYTE_2 index,BYTE* memory)
 {
 	for(BYTE_2 i=0;i<=x;i++)
 	{
-		memory[index]= regs[i];
+		memory[index+i]= regs[i];
 	}
 
 }
@@ -199,7 +199,7 @@ void load_regs(BYTE x,BYTE* regs,BYTE_2 index,BYTE* memory)
 {
 	for(BYTE_2 i=0;i<=x;i++)
 	{
-		regs[i] = memory[index];
+		regs[i] = memory[index+i];
 	}
 	
 }

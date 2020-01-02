@@ -46,34 +46,36 @@ struct screen_info* screen_init(unsigned int length, unsigned int width,const ch
 }
 
 
-void screen_alter_grid(struct screen_info* info,int* draw_flag,int x,int y,int height,unsigned char* regs,unsigned char* memory,unsigned short* index)
-{
-    *draw_flag = 0;
+void screen_alter_grid(struct screen_info* info,int x,int y,int height,unsigned char* regs,unsigned char* memory,unsigned short index)
+{   
+    printf("Drawing a sprite of height %d, starting at x %d and y %d\n",height,x,y);
     for (int l = 0; l < height; l++)
     {
-
-        unsigned char c = memory[*index];
+        unsigned char c = memory[index + l];
+        printf("Line %d is %x\n",l,c);
         for (int cont = 0;cont < 8;cont++)
         {
-            unsigned char aux = c &0x01;
+            unsigned char aux = c &0x80;
             if (aux)
             {
-                 if (info->screen_matrix[y+l][x+cont]^aux == 1)
+                 if (info->screen_matrix[y+l][x+cont]^aux == 1){
                     regs[15]=1;
+                 }
                 info->screen_matrix[y+l][x+cont] ^= aux;
+                printf("Changed [%d][%d]\n",y+l,x+cont);
             }
-            c<<1;
+            c = c<<1;
         }
-        (*index)++;
+        
     }
 
 }
-void screen_clear_grid(struct screen_info* info,int* draw_flag)
+void screen_clear_grid(struct screen_info* info)
 {
     for(int i = 0; i < 64;i++)
         for(int j =0; j < 32; j++)
             info->screen_matrix[i][j]=0;
-    *draw_flag = 0;    
+       
 }
 
 void screen_manage_events(struct screen_info* info,unsigned char* keys)
@@ -86,13 +88,15 @@ void screen_manage_events(struct screen_info* info,unsigned char* keys)
             case ALLEGRO_EVENT_KEY_DOWN :
             {           
                 int idx = translate_key(event.keyboard.keycode);
-                keys[idx] = 1;
+                if(idx < 16) 
+                    keys[idx] = 1;
                 break;
             }
             case ALLEGRO_EVENT_KEY_UP:
             {
                 int idx = translate_key(event.keyboard.keycode);
-                keys[idx] = 0;
+                if(idx < 16) 
+                    keys[idx] = 0;
                 break;
             }
             case ALLEGRO_EVENT_DISPLAY_CLOSE:
@@ -118,11 +122,9 @@ unsigned char screen_getinput(struct screen_info* info)
     {
         key = translate_key(event.keyboard.keycode);
         if( key < 16){
-            printf("Got key %x\n",key);
             return key;
         }
         else{
-            printf("Invalid Key\n");
             goto loop;
         }
     }
@@ -144,7 +146,7 @@ void screen_refresh(struct screen_info* info)
     {
         for(int c = 0; c < 32; c++)
         {
-            if(info->screen_matrix[l][c] == 1)
+            if(info->screen_matrix[l][c] == 0)
             {
                 al_draw_filled_rectangle(px_per_collumn*c,px_per_line*l,px_per_collumn*(c+1),px_per_line*(l+1),al_map_rgb(0,0,0));
             }
@@ -173,7 +175,7 @@ void screen_delete(struct screen_info* info)
 }
 unsigned char translate_key (int raw_key)
 {
-    //Converts real keyboard key into CHIP-8 key index
+    //Converts real keyboard key into CHIP-8 key index, returns 0x10 if invalid key
     switch ( raw_key )
     {
         case ALLEGRO_KEY_1 :            return 0x01;

@@ -104,31 +104,50 @@ void printstacktrace(unsigned short * stack)
 		printf("Stack[%d]: %x\n",i,stack[i]);
 	}	
 }
+void print_screen_matrix(BYTE** matrix)
+{
+	for(int l = 0; l < 64;l++)
+	{
+		for(int c = 0; c < 32;c++)
+			printf("%d|",matrix[l][c]);
+		printf("\n");
+	}
+
+}
 void c8_play_game(struct Chip8* c8)
 {
 
 	while(1)
 	{
-		if(c8->pc > c8->game_size + 0x200 + 2){
+		if(c8->pc > c8->game_size + 0x200 + 2*sizeof(unsigned short)){ // Verifica se chegou ao fim das instruções
 				return;
 		}
 		c8_emulate_cycle(c8);
 
-		if(c8->drawflag == 2)
-			screen_clear_grid(c8->scr,&(c8->drawflag));
-		if(c8->drawflag == 1)
-			screen_alter_grid(c8->scr,&(c8->drawflag),c8->sprite_buffer.x,c8->sprite_buffer.y,c8->sprite_buffer.height,c8->regs,c8->memory,&(c8->index));
+		if(c8->drawflag == 2){
+			screen_clear_grid(c8->scr);
+			if (c8->debug)
+				print_screen_matrix(c8->scr->screen_matrix);
+			c8->drawflag = 0;
+		}
+		if(c8->drawflag == 1){
+			screen_alter_grid(c8->scr,c8->sprite_buffer.x,c8->sprite_buffer.y,c8->sprite_buffer.height,c8->regs,c8->memory,c8->index);
+			if (c8->debug)
+				print_screen_matrix(c8->scr->screen_matrix);
+			c8->drawflag = 0;
+		}
 
 		screen_manage_events(c8->scr,c8->key);
 		screen_refresh(c8->scr);
 		screen_wait(c8->scr,0.01666);
 
-		if( c8->debug == true)
+		if( c8->debug )
 		{
 			printf("%x\n",c8->currentinstruction);
 			printregs(c8->regs);
 			printf("\n\n");
-			printstacktrace(c8->stack);
+			//printstacktrace(c8->stack);
+
 			getchar(); // system pause
 		}
 

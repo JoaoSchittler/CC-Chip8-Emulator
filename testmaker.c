@@ -4,15 +4,15 @@ int main()
 {
 	ins Instructions[] = 
 	{
-		//0xFF61,
-		//0xFF60,
-		//0x1482,
-		//0x0482,
-		0x0AF5,
-		0x0012
+		0x3C60, 
+		0xC361,
+		0xFF62,
+		0x55F2,
+		0x43D5,
+		0XE000
 
 	};
-	int n = 2;
+	int n = 6;
 
 	FILE* fp = fopen("TestGame","wb");
 
@@ -22,3 +22,11 @@ int main()
 }
 
 //Opcode 0xFX0A 
+/*
+	0x3C   00111100     ****
+	0xC3   11000011   **    **
+	0xFF   11111111   ********
+0xDXYN Draw Sprite at X,Y with height N starting at address I, F = 1 if any pixels are changed else F = 0
+0xFX55 store
+0x6XNN	 X <- NN	
+*/
