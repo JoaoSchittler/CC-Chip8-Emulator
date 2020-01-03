@@ -48,11 +48,11 @@ struct screen_info* screen_init(unsigned int length, unsigned int width,const ch
 
 void screen_alter_grid(struct screen_info* info,int x,int y,int height,unsigned char* regs,unsigned char* memory,unsigned short index)
 {   
-    printf("Drawing a sprite of height %d, starting at x %d and y %d\n",height,x,y);
+    
     for (int l = 0; l < height; l++)
     {
         unsigned char c = memory[index + l];
-        printf("Line %d is %x\n",l,c);
+        
         for (int cont = 0;cont < 8;cont++)
         {
             unsigned char aux = c &0x80;
@@ -62,7 +62,7 @@ void screen_alter_grid(struct screen_info* info,int x,int y,int height,unsigned 
                     regs[15]=1;
                  }
                 info->screen_matrix[y+l][x+cont] ^= aux;
-                printf("Changed [%d][%d]\n",y+l,x+cont);
+                
             }
             c = c<<1;
         }

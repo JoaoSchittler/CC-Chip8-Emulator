@@ -96,7 +96,7 @@ void set_stimer(BYTE x,BYTE* regs,BYTE_2* sound_timer);
 void set_i(BYTE x,BYTE* regs,BYTE_2* index);
 
 //Opcode 0xF29
-void load_sprite_address();
+void load_sprite_address(BYTE x,BYTE* regs,BYTE* index);
 
 //Opcode 0xFX33 
 void BCD_convert(BYTE x,BYTE* regs,BYTE_2 index,BYTE* memory);

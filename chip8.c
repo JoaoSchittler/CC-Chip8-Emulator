@@ -114,6 +114,16 @@ void print_screen_matrix(BYTE** matrix)
 	}
 
 }
+void c8_print_all_instructions(struct Chip8* c8)
+{
+	unsigned short pc = 0x200;
+	while(pc <= c8->game_size + 0x200 + 2*sizeof(unsigned short) )
+	{
+		unsigned short ins = (c8->memory[pc]<< 8) | c8->memory[pc + 1];
+		printf("%x -> %x\n",pc,ins);
+		pc+=2;
+	}	
+}
 void c8_play_game(struct Chip8* c8)
 {
 
@@ -123,6 +133,7 @@ void c8_play_game(struct Chip8* c8)
 				return;
 		}
 		c8_emulate_cycle(c8);
+
 
 		if(c8->drawflag == 2){
 			screen_clear_grid(c8->scr);
@@ -159,7 +170,7 @@ void c8_emulate_cycle(struct Chip8* c8)
 {	
 	// Fetch Instruction
 	c8->currentinstruction =  (c8->memory[c8->pc]<< 8) | c8->memory[c8->pc + 1];	
-	
+	c8->pc = c8->pc+2;	//Always increments pc
 	c8_decode_execute_instruction(c8);
   	// Update timers
   	if(c8->delay_timer>0)
@@ -182,7 +193,6 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 	unsigned short fourth_nibble = (c8->currentinstruction & 0x000F)     ;
 	unsigned char key = 0;
 	int invalid_ins = 0;
-	c8->pc = c8->pc+2;	//Always increments pc
 	switch(first_nibble)
 	{
 		case 0x0: 	switch(fourth_nibble){

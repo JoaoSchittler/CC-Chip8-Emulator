@@ -89,7 +89,7 @@ void add_reg(BYTE x,BYTE y,BYTE* regs)
 //Opcode 0x8XY5 X <- X - Y, if Carry in then F = 0 else F = 1 
 void sub_reg1(BYTE x,BYTE y,BYTE* regs)
 {
-	if (regs[y] > regs[x]) regs[15] = 0;
+	if (regs[y] >= regs[x]) regs[15] = 0;
 	else regs[15] = 1;
 	regs[x] = regs[x]-regs[y];
 }
@@ -120,7 +120,7 @@ void skip_ne_reg(BYTE x,BYTE y,BYTE* regs,BYTE_2* pc)
 //Opcode 0xANNN I <- NNN
 void load_address(BYTE_2* index,BYTE_2 n)
 {
-	*(index) = n;
+	(*index) = n;
 }
 //Opcode 0xBNNN PC = NNN + V0
 void goto_imm(BYTE_2 n,BYTE* regs,BYTE_2* pc)
@@ -140,7 +140,7 @@ void draw_sprite()
 //Opcode 0xEX8E if key X is pressed then PC+2 else PC
 void skip_if_key_press(BYTE* key,BYTE x,BYTE_2* pc)
 {
-	if(key[x]) (*pc)+=2;
+	if(key[x]!=0) (*pc)+=2;
 }
 //Opcode 0xEXA1 if key X is not pressed then PC+2 else PC
 void skip_if_key_not_pressed(BYTE* key,BYTE x,BYTE_2* pc)
@@ -170,12 +170,12 @@ void set_stimer(BYTE x,BYTE* regs,BYTE_2* sound_timer)
 //Opcode 0xFX1E I <- X
 void set_i(BYTE x,BYTE* regs,BYTE_2* index)
 {
-	(*index) = regs[x];
+	(*index) = (*index) + regs[x];
 }
-//Opcode 0xF29 I <- &Sprite[x]
-void load_sprite_address()
+//Opcode 0xFX29 I <- &Sprite[x]
+void load_sprite_address(BYTE x,BYTE* regs,BYTE* index)
 {
-	
+	(*index) = regs[x];
 }
 //Opcode 0xFX33 [I->I+2] <- BCD(X)
 void BCD_convert(BYTE x,BYTE* regs,BYTE_2 index,BYTE* memory)
