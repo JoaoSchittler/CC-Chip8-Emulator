@@ -82,15 +82,19 @@ void xor_reg(BYTE x,BYTE y,BYTE* regs)
 void add_reg(BYTE x,BYTE y,BYTE* regs)
 {
 	int aux = (int)regs[x] + (int)regs[y];
-	if (aux > 255) regs[15] = 1;
-	else regs[15] = 0;
-	regs[x] = (BYTE)aux;
+	if (aux > 255) 
+		regs[15] = 1;
+	else 
+		regs[15] = 0;
+	regs[x] = aux&0xFF;
 }
 //Opcode 0x8XY5 X <- X - Y, if Carry in then F = 0 else F = 1 
 void sub_reg1(BYTE x,BYTE y,BYTE* regs)
 {
-	if (regs[y] >= regs[x]) regs[15] = 0;
-	else regs[15] = 1;
+	if (regs[y] >= regs[x]) 
+		regs[15] = 0;
+	else 
+		regs[15] = 1;
 	regs[x] = regs[x]-regs[y];
 }
 //Opcode 0x8XY6 F = LSB X, X >> 1
@@ -102,8 +106,10 @@ void store_lsb_shiftl(BYTE x,BYTE* regs)
 //Opcode 0x8XY7 X <- Y - X , if Carry in then F = 0 else F = 1
 void sub_reg2(BYTE x,BYTE y,BYTE* regs)
 {
-	if (regs[x] > regs[y]) regs[15] = 0;
-	else regs[15] = 1;
+	if (regs[x] >= regs[y]) 
+		regs[15] = 0;
+	else 
+		regs[15] = 1;
 	regs[x] = regs[y]-regs[x];
 }
 //Opcode 0x8XYE F = MSB X, X << 1
@@ -125,7 +131,7 @@ void load_address(BYTE_2* index,BYTE_2 n)
 //Opcode 0xBNNN PC = NNN + V0
 void goto_imm(BYTE_2 n,BYTE* regs,BYTE_2* pc)
 {
-	(*pc) = n + regs[0];
+	(*pc) = n + (BYTE_2)regs[0];
 }
 //Opcode 0xCXNN X <- rand() & NN
 void generate_mask(BYTE_2 n, BYTE* regs, BYTE x)

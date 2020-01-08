@@ -1,8 +1,8 @@
 #include "screen.h"
 unsigned char translate_key (int raw_key);
-
-
-struct screen_info* screen_init(unsigned int length, unsigned int width,const char * screen_name)
+#define NCOL 64
+#define NLIN 32
+struct screen_info* screen_init(unsigned int width, unsigned int length,const char * screen_name)
 {
 	if (!al_init()) 
 	{
@@ -32,12 +32,12 @@ struct screen_info* screen_init(unsigned int length, unsigned int width,const ch
     info->length = length;
     info->width  = width;
     //Init Screen Matrix
-    info->screen_matrix = (BYTE**)malloc(64*sizeof(BYTE*));
-    for(int i = 0; i < 64; i++)
-        info->screen_matrix[i] = (BYTE*)malloc(32*sizeof(BYTE));
+    info->screen_matrix = (BYTE**)malloc(NLIN*sizeof(BYTE*));
+    for(int i = 0; i < NLIN; i++)
+        info->screen_matrix[i] = (BYTE*)malloc(NCOL*sizeof(BYTE));
 
-    for(int i = 0; i < 64;i++)
-            for(int j = 0; j < 32; j++)
+    for(int i = 0; i < NLIN;i++)
+            for(int j = 0; j < NCOL; j++)
                 info->screen_matrix[i][j] = 0; // 0 = Black , 1 = White
 
     printf("Display created sucessfully\n");    
@@ -48,23 +48,22 @@ struct screen_info* screen_init(unsigned int length, unsigned int width,const ch
 
 void screen_alter_grid(struct screen_info* info,int x,int y,int height,unsigned char* regs,unsigned char* memory,unsigned short index)
 {   
-    
     for (int l = 0; l < height; l++)
     {
-        unsigned char c = memory[index + l];
-        
+
+        unsigned char lin = memory[index + l];
         for (int cont = 0;cont < 8;cont++)
         {
-            unsigned char aux = c &0x80;
-            if (aux)
+            unsigned char pixel = lin &0x80;
+            int xmat = (x + cont)%NCOL;
+            int ymat = (y + l)%NLIN;
+            if (pixel != 0)
             {
-                 if (info->screen_matrix[y+l][x+cont]^aux == 1){
-                    regs[15]=1;
-                 }
-                info->screen_matrix[y+l][x+cont] ^= aux;
-                
+                if ( info->screen_matrix[ymat][xmat] )
+                    regs[15] = 1;   
+                info->screen_matrix[ymat][xmat] ^= 1; 
             }
-            c = c<<1;
+            lin = lin<<1;
         }
         
     }
@@ -72,8 +71,8 @@ void screen_alter_grid(struct screen_info* info,int x,int y,int height,unsigned 
 }
 void screen_clear_grid(struct screen_info* info)
 {
-    for(int i = 0; i < 64;i++)
-        for(int j =0; j < 32; j++)
+    for(int i = 0; i < NLIN;i++)
+        for(int j =0; j < NCOL; j++)
             info->screen_matrix[i][j]=0;
        
 }
@@ -139,12 +138,12 @@ unsigned char screen_getinput(struct screen_info* info)
 void screen_refresh(struct screen_info* info)
 {
     //16 px per line
-    unsigned int px_per_line = info->length / 64;
+    unsigned int px_per_line = info->length / NLIN;
     //25 px per collumn
-    unsigned int px_per_collumn = info->width / 32;
-    for(int l = 0; l < 64; l++)
+    unsigned int px_per_collumn = info->width / NCOL;
+    for(int l = 0; l < NLIN; l++)
     {
-        for(int c = 0; c < 32; c++)
+        for(int c = 0; c < NCOL; c++)
         {
             if(info->screen_matrix[l][c] == 0)
             {
@@ -166,7 +165,7 @@ void screen_wait(struct screen_info* info , double ms)
 
 void screen_delete(struct screen_info* info)
 {
-    for(int i =0; i < 64; i++)
+    for(int i =0; i < NLIN; i++)
         free(info->screen_matrix[i]);
 
     al_destroy_display(info->display);

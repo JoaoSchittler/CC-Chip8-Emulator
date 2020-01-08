@@ -34,7 +34,7 @@ typedef struct Chip8
 		screen_info* scr;
 
 } chip8;
-void c8_init(struct Chip8* c8,int doDebug);
+void c8_init(struct Chip8* c8,char* doDebug);
 void c8_print_all_instructions(struct Chip8* c8);
 void c8_play_game(struct Chip8* c8);
 int c8_loadGame(const char* str,struct Chip8* c8);

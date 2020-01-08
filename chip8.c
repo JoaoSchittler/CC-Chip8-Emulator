@@ -11,13 +11,18 @@ void c8_emulate_cycle(struct Chip8* c8);
 void c8_decode_execute_instruction(struct Chip8* c8);
 
 //TODO - init fontset
-void c8_init(struct Chip8* c8,int doDebug)
+void c8_init(struct Chip8* c8,char* doDebug)
 {
 	srand(time(NULL));
 	// Initialize registers and memory 
 	c8->currentinstruction  = 0;
 	c8->drawflag = 0;
-	c8->debug = doDebug;
+
+	if(doDebug[0] == '0' && doDebug[1] == '\0')
+		c8->debug = 0;
+	else
+		c8->debug = 1;
+
 	c8->pc      = 0x200;
 	c8->game_size = 0;
 	c8->sp	= 0;
@@ -61,7 +66,7 @@ void c8_init(struct Chip8* c8,int doDebug)
 	}
 
 
-	c8->scr = screen_init(1024,800,"Chip-8 Emulator");
+	c8->scr = screen_init(800,600,"Chip-8 Emulator");
 	
 }
 int c8_loadGame(const char* str,struct Chip8* c8)
@@ -73,17 +78,15 @@ int c8_loadGame(const char* str,struct Chip8* c8)
 
 		return 0;
 	}
-
 	fseek(game_file, 0L, SEEK_END);
     int size = ftell(game_file); // Number of Bytes of file
     rewind(game_file);
-	c8->game_size = size/2;
+	c8->game_size = size;
 
 	for(int i=0;i<size;i++){
 		int aux = getc(game_file);
 		c8->memory[i+0x200] = (unsigned char)aux;
 	}
-
 	c8->index = 0x200 + size; //Init mem index
 
 	printf("%d Bytes Loaded\n",size);
@@ -117,7 +120,7 @@ void print_screen_matrix(BYTE** matrix)
 void c8_print_all_instructions(struct Chip8* c8)
 {
 	unsigned short pc = 0x200;
-	while(pc <= c8->game_size + 0x200 + 2*sizeof(unsigned short) )
+	while(pc <= c8->game_size + 0x200 + sizeof(unsigned short))
 	{
 		unsigned short ins = (c8->memory[pc]<< 8) | c8->memory[pc + 1];
 		printf("%x -> %x\n",pc,ins);
@@ -129,24 +132,10 @@ void c8_play_game(struct Chip8* c8)
 
 	while(1)
 	{
-		if(c8->pc > c8->game_size + 0x200 + 2*sizeof(unsigned short)){ // Verifica se chegou ao fim das instruções
+		if(c8->pc > c8->game_size + 0x200 + sizeof(unsigned short)){ // Verifica se chegou ao fim das instruções
 				return;
 		}
 		c8_emulate_cycle(c8);
-
-
-		if(c8->drawflag == 2){
-			screen_clear_grid(c8->scr);
-			if (c8->debug)
-				print_screen_matrix(c8->scr->screen_matrix);
-			c8->drawflag = 0;
-		}
-		if(c8->drawflag == 1){
-			screen_alter_grid(c8->scr,c8->sprite_buffer.x,c8->sprite_buffer.y,c8->sprite_buffer.height,c8->regs,c8->memory,c8->index);
-			if (c8->debug)
-				print_screen_matrix(c8->scr->screen_matrix);
-			c8->drawflag = 0;
-		}
 
 		screen_manage_events(c8->scr,c8->key);
 		screen_refresh(c8->scr);
@@ -157,9 +146,26 @@ void c8_play_game(struct Chip8* c8)
 			printf("%x\n",c8->currentinstruction);
 			printregs(c8->regs);
 			printf("\n\n");
+			printf("I = %x\n",c8->index);
+			printf("PC = %x\n",c8->pc);
 			//printstacktrace(c8->stack);
 
 			getchar(); // system pause
+		}
+
+		if(c8->drawflag == 2)
+		{
+			screen_clear_grid(c8->scr);
+			if (c8->debug)
+				print_screen_matrix(c8->scr->screen_matrix);
+			c8->drawflag = 0;
+		}
+		if(c8->drawflag == 1)
+		{
+			screen_alter_grid(c8->scr,c8->sprite_buffer.x,c8->sprite_buffer.y,c8->sprite_buffer.height,c8->regs,c8->memory,c8->index);
+			if (c8->debug)
+				print_screen_matrix(c8->scr->screen_matrix);
+			c8->drawflag = 0;
 		}
 
 	}
@@ -278,10 +284,11 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 
 		case 0xD:
 				{
-					c8->sprite_buffer.x = second_nibble;
-					c8->sprite_buffer.y = third_nibble;
+					c8->sprite_buffer.x = c8->regs[second_nibble];
+					c8->sprite_buffer.y = c8->regs[third_nibble];
 					c8->sprite_buffer.height = fourth_nibble;
 					c8->drawflag = 1;
+					//Opcode 0xDXYN
 					break;
 				}
 				
