@@ -34,20 +34,19 @@ char* getoutputfilename(char* inputname)
 		printf("Invalid file format, file has no type\n");
 		exit(0);
 	}
-	char* outputnameaux = (char*)malloc((i+1)*sizeof(char));
-	memcpy(outputnameaux,inputname,i*sizeof(char));
-	outputnameaux[i] = '\0';
-	char* outputnamefinal = strcat(outputnameaux,".bin");
-	
-	printf("Input : -%s-\nOutput: -%s-\n",inputname,outputnamefinal);
-	
-	return outputnamefinal;
+	char* outputname = (char*)malloc((i+5)*sizeof(char));
+	memcpy(outputname,inputname,i*sizeof(char));
+	outputname[i+4] = '\0';
+	printf("%s\n",outputname);
+	char* extension = ".bin";
+	char* a = strcat(outputname,extension);
+
+	return outputname;
 }
 INS** getinstructionset()
 {
 	INS** instructionset = (INS**)malloc(INS_NUM*sizeof(INS*));
 	FILE* instructionfile = fopen("instructionset.txt","r");
-	printf("File Opened\n");
 	if(instructionfile==NULL)
 	{
 		printf("instructionset.txt file not found\n");
@@ -55,7 +54,6 @@ INS** getinstructionset()
 	}
 	for(int i = 0; i < INS_NUM; i++)
 	{
-		printf("Line %d\n",i);
 		if ( feof(instructionfile) )
 		{
 			printf("instructionset.txt missing instructions\n");
@@ -63,10 +61,9 @@ INS** getinstructionset()
 		}
 		
 		INS* instruction = (INS*)malloc(sizeof(INS));
-		printf("Allocated space\n");
+		instruction->keyword = (char*)malloc(10*sizeof(char));
 		char keyword[10];
 		int numargs;
-		printf("Goind to read from file\n");
 		int nsuccess = fscanf(instructionfile,"%s\t%d\n",keyword,&numargs);
 		if(nsuccess != 2)
 		{
@@ -75,58 +72,53 @@ INS** getinstructionset()
 		}
 		strcpy(instruction->keyword,keyword);
 		instruction->numargs = numargs;
-		printf("Keyword = %s\tNargs = %d\n",instruction->keyword,instruction->numargs);
 		instructionset[i] = instruction;
 	}
 	return instructionset;
 }
-char* getline(FILE* file, int* status)
+char* getLine(FILE* file)
 {
 	//Acha o proximo \n ou EOF
 	long int inipos = ftell(file);
 	int cont = 0;
-	char aux;
-	do
+	char aux = '\0';
+	while(aux != '\n' && aux != EOF)
 	{
-		if ( ! feof(file) )
+		if ( (aux = getc(file)) != EOF)
 		{
-			aux = getc(file);
+			//printf("Read %d\n",aux);
 			cont++;
 		}
 		else
-		{
-			*status = 1;
-			break;
-		}
+			return NULL;
 		
-	}while(aux != '\n');
+	}
+	//printf("Cont = %d\n",cont);
 	fseek(file,inipos,SEEK_SET);
 	long int endpos = ftell(file);
-	
 	//Retorna a string do ponto atual do arquivo ate o \n ou EOF
 	char* line = (char*) malloc (cont*sizeof(char));
-	for(int i = 0; i < cont;i++)
+	for(int i = 0; i < cont;i++){
 		line[i] = getc(file);
+		//printf("wrote %d\n",line[i]);
+	}
 	line[cont-1] = '\0';
-	
+	printf("Final String :%s\n",line);
 	return line;	
 }
-LINE* lineformat(char* lineraw)
+char* removeunneededspaces(char* string)
 {
-	LINE* line = (LINE*)malloc(sizeof(LINE));
-	line->numwords = 1;
-	//Removes unecessary spaces
-	int size = strlen(lineraw) + 1;
+	int size = strlen(string) + 1;
 	int newsize = size;
 	int cont = 0;
+	int lastinclude = 0;
 	char* includechar = (char*)malloc(size*sizeof(char));
 	includechar[size-1]=1;
-	while (lineraw[cont]!='\0')
+	while (string[cont]!='\0')
 	{
-		
-		if (lineraw[cont]!=' ')
-			includechar[cont] = 1;
-		else
+		includechar[cont] = 1;
+
+		if (string[cont] ==' ')
 		{
 			if (cont == 0)
 			{
@@ -135,82 +127,141 @@ LINE* lineformat(char* lineraw)
 				cont++;	
 				continue;
 			}
-			if (cont == size-2)
+			if ( string[cont-1] == ' ')
 			{
-				includechar[size-2] = 0;
-				newsize--; 
-				cont++;	
-				continue;
+				includechar[cont] = 0;
+				newsize--;
 			}
-			if ( lineraw[cont-1] != ' ' && lineraw[cont+1]!=' ')
+			if ( string[cont+1] == '\0')
 			{
-				includechar[cont] = 1;	
-				line->numwords++;
-			}						
+				includechar[cont] = 0;
+				newsize--; 
+				break;
+			}
+			if ( includechar[cont] == 1)
+				lastinclude = cont;
 		}
+		else
+			lastinclude = cont;
+
 		cont++;	
 	}
+	if (string[lastinclude] == ' ')
+		includechar[lastinclude] = 0;
+
 	char* linenew = (char*)malloc(newsize*sizeof(char));
 	for(int i = 0, j = 0; i < size;i++)
 	{
-		//printf("%d-",includechar[i]);
+		printf("%d-",includechar[i]);
 		if(includechar[i])
 		{
-			linenew[j] = lineraw[i];	
+			linenew[j] = string[i];	
 			j++;
 		}
 	}
-	//printf("\n");
-//	printf("Old Line = -%s- Size:%d\nNew Line = -%s- Size:%d\n",lineraw,size,linenew,newsize);
-	free(lineraw);
+	printf("\n");
+	for(int i = 0; i < newsize;i++)
+	{
+		printf("%d|",linenew[i]);
+	}	
+	printf("\nOld Line = -%s- Size:%d\nNew Line = -%s- Size:%d\n",string,size,linenew,newsize);
+	free(includechar);
+
+	return linenew;
+}
+LINE* lineformat(char* lineraw)
+{
+	LINE* line = (LINE*)malloc(sizeof(LINE));
+	line->numwords = 1;
+	//Removes unecessary spaces
+	char* linenew = removeunneededspaces(lineraw);
+	for(int i = 0; i < strlen(linenew);i++)
+	{
+		if (linenew[i]==' ')
+			line->numwords++;
+	}	
 	line->words = (char**)malloc(line->numwords*sizeof(char*));
-	printf("Line has %d Words\n",line->numwords);
+	printf("Line has %d Words, Total Length is %d\n",line->numwords,strlen(linenew) + 1);
 	
 	int iniwordidx = 0;
 	int wordidx = 0;
-	for (int i = 0; i < newsize;i++)
+	for (int i = 0; i < strlen(linenew) + 1;i++)
 	{
-		//printf("L[%d] = %c\n",i,linenew[i]);
+		printf("L[%d] = %c\n",i,linenew[i]);
 		if(linenew[i]==' ' || linenew[i] == '\0')
 		{
+			printf("pp\n");
 			line->words[wordidx] = (char*)malloc((i-iniwordidx + 1)*sizeof(char));
 			for(int j = iniwordidx; j < i; j++)
 			{
 				line->words[wordidx][j - iniwordidx] = linenew[j];
 			}
-			line->words[i - iniwordidx] = '\0';
+			line->words[wordidx][i - iniwordidx] = '\0';
 			printf("Word %d is -%s-\n",wordidx,line->words[wordidx]);
 			iniwordidx = i+1;
 			wordidx++;
 		}
 		
-	}	
-	free(linenew);
+	}
+
+	//free(linenew);
+
 	return line;
 }
 int formbinaryinstruction(LINE* line)
 {
 	return 1;
 }
+void delinstructionset(INS** instructions)
+{
+	for(int i = 0; i < INS_NUM;i++)
+	{
+		free(instructions[i]->keyword);
+		free(instructions[i]);
+	}
+	free(instructions);
+}
+void delLine(LINE* line)
+{
+	for(int i = 0; i < line->numwords;i++)
+		free(line->words[i]);
+	free(line->words);
+	free(line);		
+}
 
 void assemble(char* filename)
 {
 	FILE* inputfile = fopen(filename,"r");
+
 	char* outputname = getoutputfilename(filename);
 	if (outputname == NULL)		return;
 	FILE* outputfile = fopen(outputname,"w");
+	free(outputname);
+
 	INS** instructions = getinstructionset();
 	if (instructions == NULL)	return;
-	int done = 0;
-	//do
-//	{
-		char* lineraw = getline(inputfile,&done);
-		LINE* line = lineformat(lineraw);		
-		//free(line);
-		if( !formbinaryinstruction(line) )
-			return;
-//	}while (!done);
+	int linenumber = 1;
+	while (1)
+	{
+		char* lineraw = getLine(inputfile);
+		if (lineraw == NULL)
+		{
+			printf("Finished\n");
+			break;
+		}	
+		printf("Read Line %d\n",linenumber);
 
+		LINE* line = lineformat(lineraw);
+		free (lineraw);	
+		for (int i = 0; i < line->numwords; i++)
+				printf("Word %d is -%s-\n",i,line->words[i]);
+
+		//delLine(line);
+		//if( !formbinaryinstruction(line) )	return;
+
+		linenumber++;
+	}
+	delinstructionset(instructions);
 	fclose(inputfile);
 	fclose(outputfile);	
 	return;
