@@ -34,7 +34,7 @@ char* getoutputfilename(char* inputname)
 	outputname[i+4] = '\0';
 	printf("%s\n",outputname);
 	char* extension = ".bin";
-	char* a = strcat(outputname,extension);
+	strcat(outputname,extension);
 
 	return outputname;
 }
@@ -143,7 +143,7 @@ LINE* lineformat(char* lineraw)
 			line->numwords++;
 	}	
 	line->words = (char**)malloc(line->numwords*sizeof(char*));
-	printf("Line has %d Words, Total Length is %d\n",line->numwords,strlen(linenew) + 1);
+	//printf("Line has %d Words, Total Length is %d\n",line->numwords,strlen(linenew) + 1);
 	
 	int iniwordidx = 0;
 	int wordidx = 0;
@@ -158,7 +158,7 @@ LINE* lineformat(char* lineraw)
 				line->words[wordidx][j - iniwordidx] = linenew[j];
 			}
 			line->words[wordidx][i - iniwordidx] = '\0';
-			printf("Word %d is -%s-\n",wordidx,line->words[wordidx]);
+			//printf("Word %d is -%s-\n",wordidx,line->words[wordidx]);
 			iniwordidx = i+1;
 			wordidx++;
 		}
@@ -191,13 +191,13 @@ LINE** getinstructionset()
 		//Creates entry in instructionset array
 		instructionset[i] = (LINE*)malloc(sizeof(LINE));
 
-		printf("Line %d\n",i);
+		//printf("Line %d\n",i);
 		instructionset[i]->numwords = 5;	//Acording to my file format
 		instructionset[i]->words = (char**)malloc(instructionset[i]->numwords*sizeof(char*));
 
 		for(int j = 0; j < instructionset[i]->numwords; j++)
 		{
-			instructionset[i]->words[j] = (char*)malloc(5*sizeof(char));	//This "5" is the minimal size that this string has to be
+			instructionset[i]->words[j] = (char*)malloc(6*sizeof(char));	//This "6" is the minimal size that this string has to be
 			//Reads from the file and checks for a correct read
 			int nsuccess = fscanf(instructionfile,"%s\t",instructionset[i]->words[j]);
 			if (nsuccess != 1)
@@ -205,19 +205,67 @@ LINE** getinstructionset()
 				printf("error while reading line %d of instructionset.txt\n",i);
 				exit(0);
 			}	
-			printf("%s\t",instructionset[i]->words[j]);
+			//printf("%s\t",instructionset[i]->words[j]);
 		}
-		printf("\n\n");
-		getc(instructionfile); // To read \n
-
+		//printf("\n\n");
 	}
 	return instructionset;
 }
+int  stringtohex(char* c)
+{
+	int length = strlen(c);
+	if ( length <= 2)
+	{
+		printf("String too small\n");
+		return -1;
+	}
+	if ( c[0] != '0' || c[1] != 'x')
+	{
+		printf("String prefix not '0x'\n");
+		return -1;
+	}
+	unsigned short hex = 0;
+	for(int i = 2; i < length;i++)
+	{
+		if ( c[i] >='0' && c[i] <='9')
+		{
+			hex+= (c[i]-'0')<<(4*(length-i-1));
+			continue;
+		}
+		if ( c[i] >='A' && c[i] <='F')
+		{
+			hex+= (c[i]-'A'+10)<<(4*(length-i-1));
+			continue;
+		}
+		printf("%c is not a hex value\n",c[i]);
+		return -1;	
+
+	}
+	return hex;	
+
+}
+int toReg(char* arg)
+{
+	if ( strlen(arg) == 2)
+	{
+		if ( arg[0] == 'R')
+		{
+			if ( arg[1] >= '0' && arg[1] <= '9')
+				return arg[1] - '0';
+			if ( arg[1] >= 'A' && arg[1] <= 'F')
+				return arg[1] - 'A' + 10;
+		}
+	}	
+	return -1;	
+}
 unsigned short formbinaryinstruction(LINE* line,LINE** instructionset,int linenumber)
 {
-
+	printf("Line %d\nString is :",linenumber);
+	for (int i = 0; i < line->numwords; i++)
+		printf("%s\t",line->words[i]);
+	printf("\n");
 	//Search for keyword match
-	/*int insnumber = -1;
+	int insnumber = -1;
 	for(int i = 0; i < INS_NUM; i++)
 	{
 		if ( ! strcmp(line->words[0],instructionset[i]->words[0]) )
@@ -226,44 +274,125 @@ unsigned short formbinaryinstruction(LINE* line,LINE** instructionset,int linenu
 			break;
 		}
 	}
-	if (insnumber != -1)
-		printf("Line word 0 : %s, matches keyword %s\n",line->words[0],instructionset[insnumber]->keyword);
-	else
+	if(insnumber == -1)
 	{
-		printf("No match found for Line word 0 : %s (%d)\n",line->words[0],linenumber);
+		printf("Invalid Keyword %s at line %d\n",line->words[0],linenumber);
 		exit(0);
-	}
-	//Attempts numword match
-	if ( line->numwords - 1 != instructionset[insnumber]->numargs)
-	{
-		printf("Number of arguments for instruction %s should be %d, but is %d (%d)\n",line->words[0],instructionset[insnumber]->numargs,line->numwords - 1,linenumber );	
-		exit(0);
-	}
-	else
-		printf("Correct Number of arguments %d\n",instructionset[insnumber]->numargs);
-
+	}	
 	//Attempt to generate instruction
-*/
 	unsigned short instruction = 0;
+	short aux = 0;
+	int shift = 0;
+	int argindex = line->numwords - 1;
+	for (int i = instructionset[insnumber]->numwords -1; i > 0;i--)
+	{
+		printf("i = %d/%s\n",i,instructionset[insnumber]->words[i]);
+		if ( instructionset[insnumber]->words[i][0] == '-' )
+		{
+			continue;
+		}
+		if ( strlen(instructionset[insnumber]->words[i]) > 1  )
+		{
+			//Gets argument from line and adjusts shift
+		
+			if ( argindex < 0)
+			{
+					printf("Error in number of arguments (%d)\n",linenumber);
+					exit(0);
+			}	
+
+			//REG-type argument, format is RX, X being the reg desired (0-F)
+			if ( ! strcmp (instructionset[insnumber]->words[i],"REG") )
+			{
+				printf("Reg type argument %s\n",line->words[argindex]);
+				aux = toReg(line->words[argindex]);
+				if (aux == -1)
+				{
+					printf("Invalid register argument %s, register arguments have the format 'RX', 0 =< X <= F (%d)\n",line->words[argindex],linenumber);
+					exit(0);
+				}
+				aux = aux <<shift;
+				shift+=4;
+				argindex--;
+
+			}
+
+			//BYTE-type argument
+			if ( ! strcmp (instructionset[insnumber]->words[i],"BYTE") )
+			{
+				printf("BYTE type argument %s\n",line->words[argindex]);
+				//Convert string to BYTE
+				aux = stringtohex(line->words[argindex]);
+				if (aux == -1)
+				{
+					printf("Error while converting %s to hex (%d)\n",line->words[argindex],linenumber);
+					exit(0);
+				}	
+				if ( aux > 0xFF)
+				{
+					printf("%s doesn't fit in a BYTE\n",line->words[argindex]);
+					exit(0);
+				}
+				shift+=8;
+				argindex--;
+			}
+			//3Nibble-type argument	
+			if ( ! strcmp (instructionset[insnumber]->words[i],"3NIB") )
+			{
+
+				printf("3NIB type argument %s\n",line->words[argindex]);
+				//Convert string to 3NIB
+				aux = stringtohex(line->words[argindex]);
+				if (aux == -1)
+				{
+					printf("Error while converting %s to hex (%d)\n",line->words[argindex],linenumber);
+					exit(0);
+				}	
+				if ( aux > 0xFFF)
+				{
+					printf("%s doesn't fit in 3 nibbles\n",line->words[argindex]);
+					exit(0);
+				}
+				shift+=12;
+				argindex--;
+			}
+		}
+		else	//Opcode-type argument
+		{
+			printf("Opcode type %c\n",instructionset[insnumber]->words[i][0]);
+			//I know for a fact that instructionset won't have any invalid hex numbers, so i can do this more directly
+			//PepeLaugh
+			if ( instructionset[insnumber]->words[i][0] >= '0' && instructionset[insnumber]->words[i][0] <= '9')
+				aux = instructionset[insnumber]->words[i][0] - '0';
+			else
+				aux = instructionset[insnumber]->words[i][0] - 'A' + 10;
+
+			aux = aux << shift;
+			shift+=4;
+		}
+		instruction += aux;
+		aux = 0;
+	}
+	
+	printf("Instruction is %x (%d)\n",instruction,linenumber);
 
 	return instruction;
 }
-void delinstructionset(LINE** instructions)
-{
-	for(int i = 0; i < INS_NUM;i++)
-	{
-		for(int n = 0; n < instructions[i]->numwords;n++)
-			free(instructions[i]->words[n]);
-		free(instructions[i]);
-	}
-	free(instructions);
-}
+
 void delLine(LINE* line)
 {
 	for(int i = 0; i < line->numwords;i++)
 		free(line->words[i]);
 	free(line->words);
 	free(line);		
+}
+
+
+void delinstructionset(LINE** instructions)
+{
+	for(int i = 0; i < INS_NUM;i++)
+		delLine(instructions[i]);
+	free(instructions);
 }
 
 void assemble(char* filename)
@@ -275,7 +404,7 @@ void assemble(char* filename)
 
 	Fila* bininstructions = fila_cria();
 
-	/*int linenumber = 1;
+	int linenumber = 1;
 	while (1)
 	{
 		char* lineraw = getLine(inputfile);
@@ -284,18 +413,18 @@ void assemble(char* filename)
 			printf("Finished\n");
 			break;
 		}	
-		printf("Read Line %d\n",linenumber);
 
 		LINE* line = lineformat(lineraw);
 		free (lineraw);	
-		unsigned short binins = formbinaryinstruction(line,instructions,linenumber);
-		fila_insere(bininstructions,&binins); 
-		
-
-		//delLine(line);
-
+		if (line->words[0][0] != '#')
+		{
+			unsigned short binins = formbinaryinstruction(line,instructions,linenumber);
+			fila_insere(bininstructions,&binins); 
+			printf("Inserted %x into queue\n",binins);
+		}	
+		delLine(line);
 		linenumber++;
-	}*/
+	}
 	delinstructionset(instructions);
 	printf("Deleted instrucion set\n");
 	fclose(inputfile);
@@ -307,7 +436,7 @@ void assemble(char* filename)
 	//FILE* outputfile = fopen(outputname,"w");
 	//free(outputname);
 	//filloutputfile(bininstructions);
-	fila_deleta(bininstructions);
+	//fila_deleta(bininstructions);
 	printf("Delete queue\n");
 	//fclose(outputfile);	
 	return;

@@ -1,4 +1,4 @@
-#include<stdlib.h>
+#include <stdlib.h>
 #include "fila.h"
 
 Fila* fila_cria()
@@ -17,8 +17,7 @@ void fila_delete_(No* p)
 }
 void fila_deleta(Fila* f)
 {
-	if ( f->size > 0 )
-		fila_delete_(f->begin);
+	fila_delete_(f->begin);
 	free(f);
 }
 void fila_insere(Fila* f,void* data)

@@ -1,4 +1,4 @@
- LI bb cc    
-OR ADASDAASDDA
-AND	2
-ADDI	2
+#CLS
+#RET
+RSTR	R5
+LI	R8	0x15
