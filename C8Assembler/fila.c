@@ -35,6 +35,15 @@ void fila_insere(Fila* f,void* data)
 	}		
 	f->size++;	
 }
+void* fila_peek(Fila* f,int index)
+{
+	No* p = f->begin;
+	if (f->size <= index)
+		return NULL;
+	for(int i = 0; i < index; i++)
+		p = p->next;
+	return p->data;
+}
 void* fila_remove(Fila* f)
 {
 	No* p = f->begin;

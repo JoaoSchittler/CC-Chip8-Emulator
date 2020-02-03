@@ -13,5 +13,6 @@ typedef struct fila{
 Fila* fila_cria();
 void  fila_deleta(Fila* f);
 void  fila_insere(Fila* f,void* data);
+void* fila_peek(Fila* f,int index);
 void* fila_remove(Fila* f);
 #endif

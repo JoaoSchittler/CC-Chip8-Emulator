@@ -6,8 +6,12 @@ struct line {
 	char** words;
 	int numwords;
 };
+struct label{
+	unsigned short adress;
+	char* name;
+};
 typedef struct line LINE;
-
+typedef struct label LABEL;
 char checkfileformat(char* filename)
 {
 	int length = strlen(filename);
@@ -121,12 +125,12 @@ char* removeunneededspaces(char* string)
 			j++;
 		}
 	}
-	printf("\n");
+	//printf("\n");
 	/*for(int i = 0; i < newsize;i++)
 	{
 		printf("%d|",linenew[i]);
 	}	*/
-	printf("\nOld Line = -%s- Size:%d\nNew Line = -%s- Size:%d\n",string,size,linenew,newsize);
+	//printf("\nOld Line = -%s- Size:%d\nNew Line = -%s- Size:%d\n",string,size,linenew,newsize);
 	free(includechar);
 
 	return linenew;
@@ -244,6 +248,39 @@ int  stringtohex(char* c)
 	return hex;	
 
 }
+int islabel(LINE* line,int linenumber)
+{
+	if ( line->words[0][0] == '!')
+	{
+		if ( line->numwords == 1)
+			return 1;
+
+		printf("Error, too many words in label ");
+		for (int i = 0; i < line->numwords; i++)
+			printf("%s ",line->words[i]);
+		printf("(%d)\n",linenumber);
+		exit(0);
+	}
+	return 0;	
+}
+int isshorthex(LINE* line)
+{
+	int lenth = strlen(line->words[0]);
+	if ( lenth >= 2 )
+	{
+		if (line->words[0][0] == '0' && line->words[0][1] == 'x')
+		{
+			int hex = stringtohex(line->words[0]);
+			if (hex > 0xFFFF)
+			{
+				printf("Error, %d too big for unsigned short variable\n",hex);
+				exit(0);			
+			}
+			return 1;	
+		}
+	}
+	return 0;
+}
 int toReg(char* arg)
 {
 	if ( strlen(arg) == 2)
@@ -258,9 +295,9 @@ int toReg(char* arg)
 	}	
 	return -1;	
 }
-unsigned short formbinaryinstruction(LINE* line,LINE** instructionset,int linenumber)
+unsigned short formbinaryinstruction(LINE* line,LINE** instructionset,Fila* labellist,int linenumber)
 {
-	printf("Line %d\nString is :",linenumber);
+	printf("String is :");
 	for (int i = 0; i < line->numwords; i++)
 		printf("%s\t",line->words[i]);
 	printf("\n");
@@ -286,7 +323,6 @@ unsigned short formbinaryinstruction(LINE* line,LINE** instructionset,int linenu
 	int argindex = line->numwords - 1;
 	for (int i = instructionset[insnumber]->numwords -1; i > 0;i--)
 	{
-		printf("i = %d/%s\n",i,instructionset[insnumber]->words[i]);
 		if ( instructionset[insnumber]->words[i][0] == '-' )
 		{
 			continue;
@@ -304,7 +340,6 @@ unsigned short formbinaryinstruction(LINE* line,LINE** instructionset,int linenu
 			//REG-type argument, format is RX, X being the reg desired (0-F)
 			if ( ! strcmp (instructionset[insnumber]->words[i],"REG") )
 			{
-				printf("Reg type argument %s\n",line->words[argindex]);
 				aux = toReg(line->words[argindex]);
 				if (aux == -1)
 				{
@@ -312,54 +347,48 @@ unsigned short formbinaryinstruction(LINE* line,LINE** instructionset,int linenu
 					exit(0);
 				}
 				aux = aux <<shift;
+				instruction += aux;
 				shift+=4;
 				argindex--;
-
+				continue;
 			}
 
 			//BYTE-type argument
 			if ( ! strcmp (instructionset[insnumber]->words[i],"BYTE") )
 			{
-				printf("BYTE type argument %s\n",line->words[argindex]);
-				//Convert string to BYTE
 				aux = stringtohex(line->words[argindex]);
 				if (aux == -1)
 				{
 					printf("Error while converting %s to hex (%d)\n",line->words[argindex],linenumber);
 					exit(0);
 				}	
+				//Convert string to BYTE
 				if ( aux > 0xFF)
 				{
 					printf("%s doesn't fit in a BYTE\n",line->words[argindex]);
 					exit(0);
 				}
+				aux = aux << shift;
+				instruction+=aux;
 				shift+=8;
 				argindex--;
 			}
-			//3Nibble-type argument	
-			if ( ! strcmp (instructionset[insnumber]->words[i],"3NIB") )
+			//LABL-type argument	
+			if ( ! strcmp (instructionset[insnumber]->words[i],"LABL") )
 			{
-
-				printf("3NIB type argument %s\n",line->words[argindex]);
-				//Convert string to 3NIB
-				aux = stringtohex(line->words[argindex]);
-				if (aux == -1)
+				if ( line->words[argindex][0] != '!' )
 				{
-					printf("Error while converting %s to hex (%d)\n",line->words[argindex],linenumber);
+					printf("Error, expected label in argument of %s (%d)",line->words[0],linenumber);
 					exit(0);
 				}	
-				if ( aux > 0xFFF)
-				{
-					printf("%s doesn't fit in 3 nibbles\n",line->words[argindex]);
-					exit(0);
-				}
+				aux = aux << shift;
+				instruction+=aux;
 				shift+=12;
 				argindex--;
 			}
 		}
 		else	//Opcode-type argument
 		{
-			printf("Opcode type %c\n",instructionset[insnumber]->words[i][0]);
 			//I know for a fact that instructionset won't have any invalid hex numbers, so i can do this more directly
 			//PepeLaugh
 			if ( instructionset[insnumber]->words[i][0] >= '0' && instructionset[insnumber]->words[i][0] <= '9')
@@ -368,18 +397,17 @@ unsigned short formbinaryinstruction(LINE* line,LINE** instructionset,int linenu
 				aux = instructionset[insnumber]->words[i][0] - 'A' + 10;
 
 			aux = aux << shift;
+			instruction+=aux;
 			shift+=4;
 		}
-		instruction += aux;
-		aux = 0;
+
 	}
-	
 	printf("Instruction is %x (%d)\n",instruction,linenumber);
 
 	return instruction;
 }
 
-void delLine(LINE* line)
+void delline(LINE* line)
 {
 	for(int i = 0; i < line->numwords;i++)
 		free(line->words[i]);
@@ -391,7 +419,7 @@ void delLine(LINE* line)
 void delinstructionset(LINE** instructions)
 {
 	for(int i = 0; i < INS_NUM;i++)
-		delLine(instructions[i]);
+		delline(instructions[i]);
 	free(instructions);
 }
 
@@ -404,40 +432,58 @@ void assemble(char* filename)
 
 	Fila* bininstructions = fila_cria();
 
+	Fila* labellist = fila_cria();
+	unsigned short labeladress = 0x200;
+
 	int linenumber = 1;
+	unsigned short binins = 0;
 	while (1)
 	{
 		char* lineraw = getLine(inputfile);
 		if (lineraw == NULL)
-		{
-			printf("Finished\n");
 			break;
-		}	
 
 		LINE* line = lineformat(lineraw);
 		free (lineraw);	
-		if (line->words[0][0] != '#')
+
+		if (line->words[0][0] == '#')	//Comment
 		{
-			unsigned short binins = formbinaryinstruction(line,instructions,linenumber);
-			fila_insere(bininstructions,&binins); 
-			printf("Inserted %x into queue\n",binins);
+			linenumber++;
+			continue;
+		}
+		if (islabel(line,linenumber))
+		{	
+			LABEL label;
+			label.adress = labeladress;
+			label.name = line->words[0];
+			fila_insere(labellist,&label);
+			printf("Label created, name's %s and adress's %x\n",label.name,label.adress);
+			linenumber++;
+			continue;
 		}	
-		delLine(line);
+		if (isshorthex(line))	//Mainly used for indexing sprites
+		{
+			binins = stringtohex(line->words[0]);
+			labeladress+=2;
+			linenumber++;
+			continue;
+		}	
+		binins = formbinaryinstruction(line,instructions,labellist,linenumber);
+		fila_insere(bininstructions,&binins); 
+		labeladress+=2;
+
+		delline(line);
 		linenumber++;
+		printf("/////////////////////////\n");
 	}
 	delinstructionset(instructions);
-	printf("Deleted instrucion set\n");
 	fclose(inputfile);
-	printf("Closed input file\n");
-
 	/*char* outputname = getoutputfilename(filename);
 	if (outputname == NULL)		return;*/
-
 	//FILE* outputfile = fopen(outputname,"w");
 	//free(outputname);
 	//filloutputfile(bininstructions);
 	//fila_deleta(bininstructions);
-	printf("Delete queue\n");
 	//fclose(outputfile);	
 	return;
 }
