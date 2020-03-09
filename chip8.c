@@ -75,7 +75,6 @@ int c8_loadGame(const char* str,struct Chip8* c8)
 	FILE* game_file = fopen(str,"r");
 	if(game_file == NULL) {
 		printf("File not found\n");
-
 		return 0;
 	}
 	fseek(game_file, 0L, SEEK_END);
@@ -109,13 +108,21 @@ void printstacktrace(unsigned short * stack)
 }
 void print_screen_matrix(BYTE** matrix)
 {
-	for(int l = 0; l < 64;l++)
+	for(int l = 0; l < 32;l++)
 	{
-		for(int c = 0; c < 32;c++)
+		for(int c = 0; c < 64;c++)
 			printf("%d|",matrix[l][c]);
 		printf("\n");
 	}
 
+}
+void print_keys(BYTE* key)
+{
+	printf("[%d][%d][%d][%d]\n[%d][%d][%d][%d]\n[%d][%d][%d][%d]\n[%d][%d][%d][%d]\n"
+		   ,key[1],key[2],key[3],key[0xC]
+		   ,key[4],key[5],key[6],key[0xD]
+		   ,key[7],key[8],key[9],key[0xE]
+		   ,key[0xA],key[0],key[0xB],key[0xF]);
 }
 void c8_print_all_instructions(struct Chip8* c8)
 {
@@ -152,21 +159,27 @@ void c8_play_game(struct Chip8* c8)
 
 			getchar(); // system pause
 		}
+		if (c8->drawflag == 3 && c8->debug)
+		{
+			print_keys(c8->key);
+			c8->drawflag = 0;
+		}	
 
 		if(c8->drawflag == 2)
 		{
 			screen_clear_grid(c8->scr);
-			if (c8->debug)
-				print_screen_matrix(c8->scr->screen_matrix);
+			//if (c8->debug)
+			//	print_screen_matrix(c8->scr->screen_matrix);
 			c8->drawflag = 0;
 		}
 		if(c8->drawflag == 1)
 		{
 			screen_alter_grid(c8->scr,c8->sprite_buffer.x,c8->sprite_buffer.y,c8->sprite_buffer.height,c8->regs,c8->memory,c8->index);
-			if (c8->debug)
-				print_screen_matrix(c8->scr->screen_matrix);
+			//if (c8->debug)
+			//	print_screen_matrix(c8->scr->screen_matrix);
 			c8->drawflag = 0;
 		}
+
 
 	}
 
@@ -296,11 +309,13 @@ void c8_decode_execute_instruction(struct Chip8* c8)
 		case 0xE:	switch(fourth_nibble){
 
 						case 0xE:
-								skip_if_key_press(c8->key,second_nibble,&(c8->pc));
+								skip_if_key_press(c8->key,second_nibble,&(c8->pc),c8->regs);
+								c8->drawflag = 3;
 								break;
 						
 						case 0x1:
-								skip_if_key_not_pressed(c8->key,second_nibble,&(c8->pc));
+								skip_if_key_not_pressed(c8->key,second_nibble,&(c8->pc),c8->regs);
+								c8->drawflag = 3;
 								break;
 						default:
 								invalid_ins = 1;				

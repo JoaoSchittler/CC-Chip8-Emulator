@@ -50,7 +50,6 @@ void screen_alter_grid(struct screen_info* info,int x,int y,int height,unsigned 
 {   
     for (int l = 0; l < height; l++)
     {
-
         unsigned char lin = memory[index + l];
         for (int cont = 0;cont < 8;cont++)
         {
@@ -113,7 +112,7 @@ unsigned char screen_getinput(struct screen_info* info)
     unsigned char key;
     int ev;
     loop:
-    al_init_timeout(&timeout, 0.016); // Checks at 60Hz for input
+    al_init_timeout(&timeout, 0.008); // Checks at 120Hz for input
     ev = al_wait_for_event_until(info->queue, &event, &timeout);
 
 
@@ -175,6 +174,10 @@ void screen_delete(struct screen_info* info)
 unsigned char translate_key (int raw_key)
 {
     //Converts real keyboard key into CHIP-8 key index, returns 0x10 if invalid key
+    // 1 2 3 4 -> 1 2 3 C
+    // Q W E R -> 4 5 6 D
+    // A S D F -> 7 8 9 E
+    // Z X C V -> A 0 B F
     switch ( raw_key )
     {
         case ALLEGRO_KEY_1 :            return 0x01;

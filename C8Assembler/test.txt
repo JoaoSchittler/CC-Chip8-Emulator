@@ -1,6 +1,213 @@
-#CLS
-#RET
-RSTR	R5
-LI	R8	0x15
-OR	R1	R0
-ISET	0x250
+#PONG GAME TEST
+#VARIABLES
+
+#POS	BAR1	R0
+#VY 	BAR1	R1
+#POS 	BAR2	R2
+#VY 	BAR2	R3
+#POSX 	BALL	R4
+#POSY 	BALL	R5
+#VX 	BALL	R6
+#VY 	BALL	R7
+
+#DIRECTIONS
+#0 -> Not moving
+#1 -> +Y
+#2 -> -Y
+
+#MAIN
+
+#INIT VARS
+LI	R0	0xF
+LI	R1	0x0
+LI	R2	0xF
+LI	R3	0x0
+LI	R4	0x20
+LI	R5	0xF
+LI	RE 	0x0
+
+#RANDOMIZE BALL DIRECTION
+RAND 	R6	0x1
+ADDI 	R6	0x1
+RAND	R7	0x1
+ADDI	R7	0x1
+
+#GAME LOOP
+!gameloop
+CALL !draw
+CALL !move
+CALL !ballcollide
+CALL !input
+#CHECK FOR END OF GAME
+SEI	RE 	0x1
+JP	!gameloop
+
+#DRAW GAME
+!draw
+CLS
+#HEIGHT OF BAR = 5
+ISET	!bar
+#BAR1
+LI		R8	0x0
+DRAW	R8	R0	0x5
+#BAR2
+LI		R8	0x3F
+DRAW	R8	R2	0x5
+ISET 	!ball
+#BALL
+DRAW	R4	R5	0x1
+RET
+
+########################################
+#MOVE BALL & BARS
+!move
+
+#POS	BAR1	R0
+#VY 	BAR1	R1
+#POS 	BAR2	R2
+#VY 	BAR2	R3
+
+#MOVE BAR1
+SNEI	R1	0x0
+JP	!bar2move
+
+#IF R1 != 2	
+#IF R0 != 31 R0++
+
+SNEI	R1	0x2
+JP	!bar1down
+SEI	R0	0x1F
+ADDI	R0	0x1
+JP !bar2move
+
+!bar1down
+#IF R0 != 0 R0--;
+SNEI	R0	0x0
+JP		!bar2move
+LI		R8	0x1
+SUBR	R0	R8
+
+#MOVE BAR2
+!bar2move
+SNEI	R3	0x0
+JP	!ballmove
+
+#IF R3 != 2	
+#IF R2 != 31 R2++
+
+SNEI	R3	0x2
+JP	!bar2down
+SEI	R2	0x1F
+ADDI	R2	0x1
+JP !ballmove
+
+!bar2down
+#IF R2 != 0 R2--;
+SNEI	R2	0x0
+JP		!ballmove
+LI		R8	0x1
+SUBR	R2	R8
+
+##############################
+#POSX 	BALL	R4
+#POSY 	BALL	R5
+#VX 	BALL	R6
+#VY 	BALL	R7
+#MOVE BALL
+!ballmove
+#MOVE BALLX
+#IF R6 == 0 GOTO MOVEBALLY
+SNEI R6	0x0
+JP !ballymove
+
+#IF R6 == 2 GOTO MOVEBALLXDOWN
+SNEI R6 0x2
+JP !ballxmovedown
+
+#IF R4 != 63 R4++
+SEI  R4 0x3F
+ADDI R4 0x1
+
+!ballxmovedown
+#IF R4 != 0 R4--
+SNEI R4 0x0
+JP !ballymove
+LI   R8 0x1
+SUBR R4 R8
+
+#MOVE BALLY
+!ballymove
+#IF  R7 == 0 GOTO FUNCEND
+SNEI R7 0x0
+JP !moveend
+
+#IF  R7 == 2 GOTO MOVEBALLYDOWN
+SNEI R7 0x2
+JP !ballymovedown
+
+#IF R5 != 0x1F R5++
+SEI  R5 0x1F
+ADDI R5 0x1
+
+!ballymovedown
+#IF R5 != 0 R5--
+SNEI R5 0x0
+JP !moveend
+LI   R8 0x1
+SUBR R5 R8
+
+!moveend
+RET
+#BALL COLLISION
+!ballcollide
+
+RET
+####################################
+#Controls
+#BAR1 : UP   = 7 aka 'A' 
+#	DOWN = A aka 'Z'
+#BAR2 : UP   = E aka 'F' 
+#	DOWN = F aka 'V'
+#GET INPUTS
+!input
+#BAR1 INPUTS
+LI 	R8 0x7
+LI 	R9 0xA
+SKNP	R8
+JP 	!bar1up
+SKNP	R9
+JP 	!bar1down
+LI 	R1 0x0
+JP 	!bar2inputs
+
+!bar1up
+LI	R1 0x2
+JP 	!bar2inputs
+!bar1down
+LI	R1 0x1
+
+!bar2inputs
+#BAR2 INPUTS
+LI	R8 0xE
+LI	R9 0xF
+SKNP	R8
+JP	!bar2up
+SKNP	R9
+JP	!bar2down
+LI	R3 0x0
+JP 	!inputend
+!bar2up
+LI	R3 0x2
+JP	!inputend
+!bar2down
+LI	R3 0x1
+!inputend
+RET
+####################################
+#GAME SPRITES
+!bar
+0x8080
+0x8080
+!ball
+0x8000
+#cd C8Assembler/ && ./main test.txt && cd && cd CC-Chip8-Emulator/ && ./main C8Assembler/test.bin 0

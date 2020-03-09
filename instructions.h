@@ -75,10 +75,10 @@ void generate_mask(BYTE_2 n, BYTE* regs, BYTE x);
 void draw_sprite();
 
 //Opcode 0xEX8E
-void skip_if_key_press(BYTE* key,BYTE x,BYTE_2* pc);
+void skip_if_key_press(BYTE* key,BYTE x,BYTE_2* pc,BYTE* regs);
 
 //Opcode 0xEXA1
-void skip_if_key_not_pressed(BYTE* key,BYTE x,BYTE_2* pc);
+void skip_if_key_not_pressed(BYTE* key,BYTE x,BYTE_2* pc,BYTE* regs);
 
 //Opcode 0xFX07
 void get_dtimer(BYTE x,BYTE* regs,BYTE_2 delay_timer);

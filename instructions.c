@@ -144,16 +144,14 @@ void draw_sprite()
 	//Implemented in chip8.c
 }
 //Opcode 0xEX8E if key X is pressed then PC+2 else PC
-void skip_if_key_press(BYTE* key,BYTE x,BYTE_2* pc)
+void skip_if_key_press(BYTE* key,BYTE x,BYTE_2* pc,BYTE* regs)
 {
-	printf("Checking for key %d\n",x);
-	if(key[x]!=0) (*pc)+=2;
+	if(key[regs[x]]!=0) (*pc)+=2;
 }
 //Opcode 0xEXA1 if key X is not pressed then PC+2 else PC
-void skip_if_key_not_pressed(BYTE* key,BYTE x,BYTE_2* pc)
+void skip_if_key_not_pressed(BYTE* key,BYTE x,BYTE_2* pc,BYTE* regs)
 {
-	printf("Checking for not key %d\n",x);
-	if(!key[x]) (*pc)+=2;
+	if(!key[regs[x]]) (*pc)+=2;
 }
 //Opcode 0xFX07 X <- delay_timer
 void get_dtimer(BYTE x,BYTE* regs,BYTE_2 delay_timer)

@@ -12,13 +12,31 @@ struct label{
 };
 typedef struct line LINE;
 typedef struct label LABEL;
+typedef unsigned short ushort;
+char 	checkfileformat(char* filename);
+char* 	getoutputfilename(char* inputname);
+LINE** 	getinstructionset();
+char* 	getLine(FILE* file);
+char* 	removeunneededspaces(char* string);
+LINE* 	lineformat(char* lineraw);
+void 	filLabellist(Fila* list,FILE* file);
+ushort 	formbinaryinstruction(LINE* line,LINE** instructionset,Fila* labellist,int linenumber);
+
+int stringtohex(char* c);
+int islabel(LINE* line,int linenumber);
+int isshorthex(LINE* line);
+int toReg(char* arg);
+
+void delline(LINE* line);
+void delinstructionset(LINE** instructions);
+
 char checkfileformat(char* filename)
 {
 	int length = strlen(filename);
-	printf("File name = %s\nHas length %d\n",filename,length);
-	
+	printf("File name = %s\nHas length %d\n",filename,length);	
 	return 0;
 }
+
 char* getoutputfilename(char* inputname)
 {
 	int i = 0;
@@ -33,15 +51,56 @@ char* getoutputfilename(char* inputname)
 		printf("Invalid file format, file has no type\n");
 		exit(0);
 	}
-	char* outputname = (char*)malloc((i+5)*sizeof(char));
+
+	char* outputname = (char*)malloc((i+1)*sizeof(char));
+	//strcpy(outputname,inputname);
 	memcpy(outputname,inputname,i*sizeof(char));
-	outputname[i+4] = '\0';
-	printf("%s\n",outputname);
+	outputname[i] = '\0';
 	char* extension = ".bin";
 	strcat(outputname,extension);
-
+	printf("%s\n",outputname);
 	return outputname;
 }
+
+LINE** getinstructionset()
+{
+	//Traverses intructionset.txt and fills the instructionset array
+	FILE* instructionfile = fopen("instructionset.txt","r");
+	if(instructionfile==NULL)
+	{
+		printf("instructionset.txt file not found\n");
+		exit(0);
+	}
+
+	LINE** instructionset = (LINE**)malloc(INS_NUM*sizeof(LINE*));
+	for(int i = 0; i < INS_NUM; i++)
+	{
+		if ( feof(instructionfile) )
+		{
+			printf("instructionset.txt missing instructions\n");
+			exit(0);
+		}
+		//Creates entry in instructionset array
+		instructionset[i] = (LINE*)malloc(sizeof(LINE));
+		instructionset[i]->numwords = 5;	//Max number of words a line has
+		instructionset[i]->words = (char**)malloc(instructionset[i]->numwords*sizeof(char*));
+
+		for(int j = 0; j < instructionset[i]->numwords; j++)
+		{
+			instructionset[i]->words[j] = (char*)malloc(6*sizeof(char));	//This "6" is the minimal size that this string has to be
+			//Reads from the file and checks for a correct read
+			int nsuccess = fscanf(instructionfile,"%s\t",instructionset[i]->words[j]);
+			if (nsuccess != 1)
+			{
+				printf("error while reading line %d of instructionset.txt\n",i);
+				exit(0);
+			}	
+		}
+		
+	}
+	return instructionset;
+}
+
 char* getLine(FILE* file)
 {
 	//Acha o proximo \n ou EOF
@@ -51,25 +110,21 @@ char* getLine(FILE* file)
 	while(aux != '\n' && aux != EOF)
 	{
 		if ( (aux = getc(file)) != EOF)
-		{
-			//printf("Read %d\n",aux);
 			cont++;
-		}
 		else
 			return NULL;
 		
 	}
-	//printf("Cont = %d\n",cont);
 	fseek(file,inipos,SEEK_SET);
 	long int endpos = ftell(file);
 	//Retorna a string do ponto atual do arquivo ate o \n ou EOF
 	char* line = (char*) malloc (cont*sizeof(char));
 	for(int i = 0; i < cont;i++){
 		line[i] = getc(file);
-		//printf("wrote %d\n",line[i]);
+		//printf("%d|",line[i]);
 	}
+	//printf("\n");
 	line[cont-1] = '\0';
-	printf("Final String :%s\n",line);
 	return line;	
 }
 char* removeunneededspaces(char* string)
@@ -128,13 +183,14 @@ char* removeunneededspaces(char* string)
 	//printf("\n");
 	/*for(int i = 0; i < newsize;i++)
 	{
-		printf("%d|",linenew[i]);
-	}	*/
+		printf("%c|",linenew[i]);
+	}*/
 	//printf("\nOld Line = -%s- Size:%d\nNew Line = -%s- Size:%d\n",string,size,linenew,newsize);
 	free(includechar);
 
 	return linenew;
 }
+
 LINE* lineformat(char* lineraw)
 {
 	LINE* line = (LINE*)malloc(sizeof(LINE));
@@ -147,22 +203,18 @@ LINE* lineformat(char* lineraw)
 			line->numwords++;
 	}	
 	line->words = (char**)malloc(line->numwords*sizeof(char*));
-	//printf("Line has %d Words, Total Length is %d\n",line->numwords,strlen(linenew) + 1);
 	
 	int iniwordidx = 0;
 	int wordidx = 0;
 	for (int i = 0; i < strlen(linenew) + 1;i++)
 	{
-		//printf("L[%d] = %c\n",i,linenew[i]);
 		if(linenew[i]==' ' || linenew[i] == '\0' || linenew[i]== '\t')
 		{
 			line->words[wordidx] = (char*)malloc((i-iniwordidx + 1)*sizeof(char));
 			for(int j = iniwordidx; j < i; j++)
-			{
 				line->words[wordidx][j - iniwordidx] = linenew[j];
-			}
+
 			line->words[wordidx][i - iniwordidx] = '\0';
-			//printf("Word %d is -%s-\n",wordidx,line->words[wordidx]);
 			iniwordidx = i+1;
 			wordidx++;
 		}
@@ -173,47 +225,192 @@ LINE* lineformat(char* lineraw)
 
 	return line;
 }
-LINE** getinstructionset()
+
+void filLabellist(Fila* list,FILE* file)
 {
-	//Opens file
-
-	FILE* instructionfile = fopen("instructionset.txt","r");
-	if(instructionfile==NULL)
+	//Goes through the file and inserts any labels into list
+	int linenumber = 1;
+	int lineadress = 0x200;
+	while (1)
 	{
-		printf("instructionset.txt file not found\n");
-		exit(0);
-	}
+		char* lineraw = getLine(file);
+		if (lineraw == NULL)
+			break;
+		if (lineraw[0] == '#'|| lineraw[0] == '\0')
+			continue;
 
-	LINE** instructionset = (LINE**)malloc(INS_NUM*sizeof(LINE*));
+		LINE* line = lineformat(lineraw);
+		free (lineraw);
+
+		if ( islabel(line,linenumber))
+		{
+			LABEL* lb = (LABEL*)malloc(sizeof(LABEL));
+			lb->adress = lineadress;
+			lb->name = line->words[0];
+			fila_insere(list,lb);
+			continue;
+		}
+		else
+			lineadress+=2;
+	}
+	fseek(file,0,SEEK_SET);	
+}
+
+unsigned short formbinaryinstruction(LINE* line,LINE** instructionset,Fila* labellist,int linenumber)
+{
+	printf("String is :");
+	for (int i = 0; i < line->numwords; i++)
+		printf("%s\t",line->words[i]);
+	printf("\n");
+	//Search for keyword match
+	int insnumber = -1;
 	for(int i = 0; i < INS_NUM; i++)
 	{
-		if ( feof(instructionfile) )
+		if ( ! strcmp(line->words[0],instructionset[i]->words[0]) )
 		{
-			printf("instructionset.txt missing instructions\n");
-			exit(0);
+			insnumber = i;
+			break;
 		}
-		//Creates entry in instructionset array
-		instructionset[i] = (LINE*)malloc(sizeof(LINE));
-
-		//printf("Line %d\n",i);
-		instructionset[i]->numwords = 5;	//Acording to my file format
-		instructionset[i]->words = (char**)malloc(instructionset[i]->numwords*sizeof(char*));
-
-		for(int j = 0; j < instructionset[i]->numwords; j++)
-		{
-			instructionset[i]->words[j] = (char*)malloc(6*sizeof(char));	//This "6" is the minimal size that this string has to be
-			//Reads from the file and checks for a correct read
-			int nsuccess = fscanf(instructionfile,"%s\t",instructionset[i]->words[j]);
-			if (nsuccess != 1)
-			{
-				printf("error while reading line %d of instructionset.txt\n",i);
-				exit(0);
-			}	
-			//printf("%s\t",instructionset[i]->words[j]);
-		}
-		//printf("\n\n");
 	}
-	return instructionset;
+	if(insnumber == -1)
+	{
+		printf("Invalid Keyword %s at line %d\n",line->words[0],linenumber);
+		exit(0);
+	}	
+	//Attempt to generate instruction
+	unsigned short instruction = 0;
+	short aux = 0;
+	int shift = 0;
+	int argindex = line->numwords - 1;
+	for (int i = instructionset[insnumber]->numwords -1; i > 0;i--)
+	{
+		if ( instructionset[insnumber]->words[i][0] == '-' )
+		{
+			continue;
+		}
+		if ( strlen(instructionset[insnumber]->words[i]) > 1  )
+		{
+			//Gets argument from line and adjusts shift
+		
+			if ( argindex < 0)
+			{
+					printf("Error in number of arguments (%d)\n",linenumber);
+					exit(0);
+			}	
+
+			//REG-type argument, format is RX, X being the reg desired (0-F)
+			if ( ! strcmp (instructionset[insnumber]->words[i],"REG") )
+			{
+				aux = toReg(line->words[argindex]);
+				if (aux == -1)
+				{
+					printf("Invalid register argument %s, register arguments have the format 'RX', 0 =< X <= F (%d)\n",line->words[argindex],linenumber);
+					exit(0);
+				}
+				aux = aux <<shift;
+				shift+=4;
+			}
+
+			//BYTE-type argument
+			if ( ! strcmp (instructionset[insnumber]->words[i],"BYTE") )
+			{
+				aux = stringtohex(line->words[argindex]);
+				if (aux == -1)
+				{
+					printf("Error while converting %s to hex (%d)\n",line->words[argindex],linenumber);
+					exit(0);
+				}	
+				//Convert string to BYTE
+				if ( aux > 0xFF)
+				{
+					printf("%s doesn't fit in a BYTE\n",line->words[argindex]);
+					exit(0);
+				}
+				aux = aux << shift;
+				shift+=8;
+			}
+			//NIB-type argument
+			if ( ! strcmp (instructionset[insnumber]->words[i],"NIB") )
+			{
+				aux = stringtohex(line->words[argindex]);
+				if (aux == -1)
+				{
+					printf("Error while converting %s to hex (%d)\n",line->words[argindex],linenumber);
+					exit(0);
+				}	
+				//Convert string to BYTE
+				if ( aux > 0x0F)
+				{
+					printf("%s doesn't fit in a NIBBLE\n",line->words[argindex]);
+					exit(0);
+				}
+				aux = aux << shift;
+				shift+=4;
+			}
+			//LABL-type argument	
+			if ( ! strcmp (instructionset[insnumber]->words[i],"LABL") )
+			{
+				aux = 0;
+				if ( line->words[argindex][0] != '!' )
+				{
+					printf("Error, expected label in argument %s (%d)\n",line->words[argindex],linenumber);
+					exit(0);
+				}
+				for (int j = 0; j < labellist->size;j++)
+				{
+					LABEL* lb = fila_peek(labellist,j);
+					if ( ! strcmp(lb->name,line->words[argindex]))
+					{
+						aux = lb->adress;
+						break;
+					}
+					
+				}
+				if ( aux == 0)
+				{
+					printf("Error, unknown label %s (%d)\n",line->words[argindex],linenumber);
+					exit(0);
+
+				}	
+				//Check if valid label
+				//Add label adress to "aux"	
+				aux = aux << shift;
+				shift+=12;
+			}
+
+			instruction+=aux;
+			argindex--;
+		}
+		else	//Opcode-type argument
+		{
+			//I know for a fact that instructionset won't have any invalid hex numbers, so i can do this more directly
+			//PepeLaugh
+			if ( instructionset[insnumber]->words[i][0] >= '0' && instructionset[insnumber]->words[i][0] <= '9')
+				aux = instructionset[insnumber]->words[i][0] - '0';
+			else
+				aux = instructionset[insnumber]->words[i][0] - 'A' + 10;
+
+			aux = aux << shift;
+			instruction+=aux;
+			shift+=4;
+		}
+
+	}
+	printf("Instruction is %x (%d)\n",instruction,linenumber);
+
+	return instruction;
+}
+
+void filloutputfile(Fila* bins,FILE* file)
+{
+	while (bins->size != 0)
+	{
+		unsigned char* bin = fila_remove(bins);
+		putc(*(bin+1),file);
+		putc(*bin,file);
+		printf("%x%x\n",*(bin+1),*bin);
+		free((unsigned short*)bin);
+	}
 }
 int  stringtohex(char* c)
 {
@@ -295,117 +492,6 @@ int toReg(char* arg)
 	}	
 	return -1;	
 }
-unsigned short formbinaryinstruction(LINE* line,LINE** instructionset,Fila* labellist,int linenumber)
-{
-	printf("String is :");
-	for (int i = 0; i < line->numwords; i++)
-		printf("%s\t",line->words[i]);
-	printf("\n");
-	//Search for keyword match
-	int insnumber = -1;
-	for(int i = 0; i < INS_NUM; i++)
-	{
-		if ( ! strcmp(line->words[0],instructionset[i]->words[0]) )
-		{
-			insnumber = i;
-			break;
-		}
-	}
-	if(insnumber == -1)
-	{
-		printf("Invalid Keyword %s at line %d\n",line->words[0],linenumber);
-		exit(0);
-	}	
-	//Attempt to generate instruction
-	unsigned short instruction = 0;
-	short aux = 0;
-	int shift = 0;
-	int argindex = line->numwords - 1;
-	for (int i = instructionset[insnumber]->numwords -1; i > 0;i--)
-	{
-		if ( instructionset[insnumber]->words[i][0] == '-' )
-		{
-			continue;
-		}
-		if ( strlen(instructionset[insnumber]->words[i]) > 1  )
-		{
-			//Gets argument from line and adjusts shift
-		
-			if ( argindex < 0)
-			{
-					printf("Error in number of arguments (%d)\n",linenumber);
-					exit(0);
-			}	
-
-			//REG-type argument, format is RX, X being the reg desired (0-F)
-			if ( ! strcmp (instructionset[insnumber]->words[i],"REG") )
-			{
-				aux = toReg(line->words[argindex]);
-				if (aux == -1)
-				{
-					printf("Invalid register argument %s, register arguments have the format 'RX', 0 =< X <= F (%d)\n",line->words[argindex],linenumber);
-					exit(0);
-				}
-				aux = aux <<shift;
-				instruction += aux;
-				shift+=4;
-				argindex--;
-				continue;
-			}
-
-			//BYTE-type argument
-			if ( ! strcmp (instructionset[insnumber]->words[i],"BYTE") )
-			{
-				aux = stringtohex(line->words[argindex]);
-				if (aux == -1)
-				{
-					printf("Error while converting %s to hex (%d)\n",line->words[argindex],linenumber);
-					exit(0);
-				}	
-				//Convert string to BYTE
-				if ( aux > 0xFF)
-				{
-					printf("%s doesn't fit in a BYTE\n",line->words[argindex]);
-					exit(0);
-				}
-				aux = aux << shift;
-				instruction+=aux;
-				shift+=8;
-				argindex--;
-			}
-			//LABL-type argument	
-			if ( ! strcmp (instructionset[insnumber]->words[i],"LABL") )
-			{
-				if ( line->words[argindex][0] != '!' )
-				{
-					printf("Error, expected label in argument of %s (%d)",line->words[0],linenumber);
-					exit(0);
-				}	
-				aux = aux << shift;
-				instruction+=aux;
-				shift+=12;
-				argindex--;
-			}
-		}
-		else	//Opcode-type argument
-		{
-			//I know for a fact that instructionset won't have any invalid hex numbers, so i can do this more directly
-			//PepeLaugh
-			if ( instructionset[insnumber]->words[i][0] >= '0' && instructionset[insnumber]->words[i][0] <= '9')
-				aux = instructionset[insnumber]->words[i][0] - '0';
-			else
-				aux = instructionset[insnumber]->words[i][0] - 'A' + 10;
-
-			aux = aux << shift;
-			instruction+=aux;
-			shift+=4;
-		}
-
-	}
-	printf("Instruction is %x (%d)\n",instruction,linenumber);
-
-	return instruction;
-}
 
 void delline(LINE* line)
 {
@@ -433,58 +519,49 @@ void assemble(char* filename)
 	Fila* bininstructions = fila_cria();
 
 	Fila* labellist = fila_cria();
-	unsigned short labeladress = 0x200;
 
 	int linenumber = 1;
-	unsigned short binins = 0;
+	int adress = 0x200;
+	unsigned short* binins;
+
+	filLabellist(labellist,inputfile);
 	while (1)
 	{
 		char* lineraw = getLine(inputfile);
 		if (lineraw == NULL)
 			break;
-
-		LINE* line = lineformat(lineraw);
-		free (lineraw);	
-
-		if (line->words[0][0] == '#')	//Comment
+		if (lineraw[0] == '#' ||  lineraw[0] == '!' || lineraw[0] == '\0')	//Comment, label or empty line
 		{
 			linenumber++;
 			continue;
 		}
-		if (islabel(line,linenumber))
-		{	
-			LABEL label;
-			label.adress = labeladress;
-			label.name = line->words[0];
-			fila_insere(labellist,&label);
-			printf("Label created, name's %s and adress's %x\n",label.name,label.adress);
-			linenumber++;
-			continue;
-		}	
+
+		LINE* line = lineformat(lineraw);
+		free (lineraw);	
+		binins = (unsigned short*)malloc(sizeof(unsigned short));
+
 		if (isshorthex(line))	//Mainly used for indexing sprites
-		{
-			binins = stringtohex(line->words[0]);
-			labeladress+=2;
-			linenumber++;
-			continue;
-		}	
-		binins = formbinaryinstruction(line,instructions,labellist,linenumber);
-		fila_insere(bininstructions,&binins); 
-		labeladress+=2;
+			*binins = stringtohex(line->words[0]);
+		else
+			*binins = formbinaryinstruction(line,instructions,labellist,linenumber);
+					
+		fila_insere(bininstructions,binins); 
 
 		delline(line);
 		linenumber++;
+		adress+=2;
 		printf("/////////////////////////\n");
 	}
 	delinstructionset(instructions);
 	fclose(inputfile);
-	/*char* outputname = getoutputfilename(filename);
-	if (outputname == NULL)		return;*/
-	//FILE* outputfile = fopen(outputname,"w");
-	//free(outputname);
-	//filloutputfile(bininstructions);
-	//fila_deleta(bininstructions);
-	//fclose(outputfile);	
+	char* outputname = getoutputfilename(filename);
+	if (outputname == NULL)		
+		return;
+	FILE* outputfile = fopen(outputname,"w");
+	free(outputname);
+	filloutputfile(bininstructions,outputfile);
+	fila_deleta(bininstructions);
+	fclose(outputfile);	
 	return;
 }
 /*
